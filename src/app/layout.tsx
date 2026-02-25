@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Funnel_Display } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { NavBar } from "@/components/NavBar";
 import { fallbackActors } from "@/lib/data/fallback";
@@ -39,6 +40,7 @@ export default async function RootLayout({
         <NavBar actors={actors} />
         {children}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
