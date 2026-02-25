@@ -4,7 +4,7 @@ import { syncActorMovies } from "@/lib/sync/actor-sync";
 
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+async function runDailySync(request: NextRequest) {
   try {
     if (!requireCronSecret(request)) {
       return jsonError("Unauthorized", 401);
@@ -22,4 +22,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Daily sync failed", 500);
   }
+}
+
+export async function GET(request: NextRequest) {
+  return runDailySync(request);
+}
+
+export async function POST(request: NextRequest) {
+  return runDailySync(request);
 }

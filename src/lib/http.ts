@@ -15,6 +15,17 @@ export function requireAdmin(request: NextRequest): boolean {
 
 export function requireCronSecret(request: NextRequest): boolean {
   const fromHeader = request.headers.get("x-cron-secret");
+  const fromAuthorization = request.headers.get("authorization");
   const expected = readEnv("CRON_SECRET");
-  return Boolean(fromHeader && fromHeader === expected);
+  if (fromHeader && fromHeader === expected) {
+    return true;
+  }
+
+  if (!fromAuthorization) {
+    return false;
+  }
+
+  const match = fromAuthorization.match(/^Bearer\s+(.+)$/i);
+  const token = match?.[1]?.trim();
+  return Boolean(token && token === expected);
 }

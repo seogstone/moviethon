@@ -27,7 +27,7 @@ Tom Hanks first, multi-actor ready.
 - `POST /api/comments/:commentId/delete`
 - `POST /api/admin/sync/actor/:actorSlug` (admin token required)
 - `POST /api/admin/comments/:commentId/hide` (admin token required)
-- `POST /api/cron/daily-sync` (cron secret required)
+- `GET|POST /api/cron/daily-sync` (cron secret required)
 
 ## Local Setup
 
@@ -50,7 +50,8 @@ Tom Hanks first, multi-actor ready.
 - Admin API sync:
   - `POST /api/admin/sync/actor/tom-hanks` with header `x-admin-token`
 - Daily sync cron:
-  - `POST /api/cron/daily-sync` with header `x-cron-secret`
+  - `GET /api/cron/daily-sync` with header `authorization: Bearer <CRON_SECRET>` (Vercel Cron)
+  - `POST /api/cron/daily-sync` with header `x-cron-secret` (manual trigger)
 
 ## Community / Moderation Flow
 
