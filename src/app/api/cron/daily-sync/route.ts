@@ -4,6 +4,8 @@ import { syncActorMovies } from "@/lib/sync/actor-sync";
 
 import { NextRequest, NextResponse } from "next/server";
 
+export const maxDuration = 300;
+
 async function runDailySync(request: NextRequest) {
   try {
     if (!requireCronSecret(request)) {
