@@ -42,5 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 # local ops notes
+HUMAN_ACTIONS.md
 HUMAN_OUPUTS.md
 HUMAN_OUTPUTS.md
