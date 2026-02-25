@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Funnel_Display } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 
 import { NavBar } from "@/components/NavBar";
 import { fallbackActors } from "@/lib/data/fallback";
@@ -37,6 +38,7 @@ export default async function RootLayout({
       <body className={`${funnelDisplay.variable} antialiased`}>
         <NavBar actors={actors} />
         {children}
+        <Analytics />
       </body>
     </html>
   );
