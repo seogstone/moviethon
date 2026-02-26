@@ -63,6 +63,8 @@ function mapAppUser(row: Record<string, unknown>): AppUser {
     auth0Sub: String(row.auth0_sub),
     email: row.email ? String(row.email) : null,
     name: row.name ? String(row.name) : null,
+    displayName: row.display_name ? String(row.display_name) : null,
+    bio: row.bio ? String(row.bio) : null,
     avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -436,6 +438,50 @@ export async function upsertAppUser(input: {
       },
       { onConflict: "auth0_sub" },
     )
+    .select("*")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  let mapped = mapAppUser(data);
+
+  if (!mapped.displayName && input.name) {
+    const { data: updated, error: updateError } = await supabase
+      .from("app_users")
+      .update({
+        display_name: input.name,
+        updated_at: now,
+      })
+      .eq("id", mapped.id)
+      .select("*")
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    mapped = mapAppUser(updated);
+  }
+
+  return mapped;
+}
+
+export async function updateAppUserProfile(input: {
+  userId: string;
+  displayName: string;
+  bio: string | null;
+}): Promise<AppUser> {
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("app_users")
+    .update({
+      display_name: input.displayName,
+      bio: input.bio,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.userId)
     .select("*")
     .single();
 

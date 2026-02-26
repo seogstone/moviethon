@@ -69,7 +69,7 @@ export async function POST(
     const comment = await createComment({
       commentId,
       movieId,
-      displayName: (payload.displayName?.trim() || appUser?.name || "").trim() || "member",
+      displayName: (payload.displayName?.trim() || appUser?.displayName || appUser?.name || "").trim() || "member",
       body: cleanedBody,
       deleteTokenHash: finalToken.tokenHash,
       userId: appUser?.id ?? null,

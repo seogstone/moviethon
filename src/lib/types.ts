@@ -84,6 +84,8 @@ export interface AppUser {
   auth0Sub: string;
   email: string | null;
   name: string | null;
+  displayName: string | null;
+  bio: string | null;
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;

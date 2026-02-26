@@ -41,6 +41,7 @@ Tom Hanks first, multi-actor ready.
 4. Run migration in Supabase SQL editor:
    - `supabase/migrations/0001_init.sql`
    - `supabase/migrations/0002_auth0_accounts.sql`
+   - `supabase/migrations/0003_user_profiles.sql`
 5. Seed data:
    - `npm run seed`
 6. Start dev server:
@@ -102,3 +103,4 @@ Coverage focus:
 - For production, disable `HCAPTCHA_BYPASS` and provide real captcha/site keys.
 - Community scores use `user_votes` as the primary source.
 - Legacy guest vote inclusion can be toggled with `INCLUDE_LEGACY_GUEST_VOTES=true|false`.
+- Logged-in users can manage profile fields at `/me` (display name + bio).

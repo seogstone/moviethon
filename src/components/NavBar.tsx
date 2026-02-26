@@ -85,6 +85,17 @@ export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
 
           {authEnabled && viewer && (
             <Link
+              href="/me"
+              className={`rounded-full px-3 py-1.5 text-sm transition ${
+                pathname === "/me" ? "bg-[#ecebff] text-[#3733b8]" : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
+              }`}
+            >
+              profile
+            </Link>
+          )}
+
+          {authEnabled && viewer && (
+            <Link
               href="/me/ratings"
               className={`rounded-full px-3 py-1.5 text-sm transition ${
                 pathname.startsWith("/me/ratings")

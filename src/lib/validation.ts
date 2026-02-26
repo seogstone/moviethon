@@ -25,3 +25,8 @@ export const actorMovieFilterSchema = z.object({
   sortBy: z.enum(["release_date", "imdb", "community", "owner"]).optional(),
   sortDir: z.enum(["asc", "desc"]).optional(),
 });
+
+export const userProfileUpdateSchema = z.object({
+  displayName: z.string().min(2).max(50),
+  bio: z.string().max(280).optional().nullable(),
+});
