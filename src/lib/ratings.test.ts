@@ -1,4 +1,11 @@
-import { applyVoteUpsert, computeCommunityAverage, normalizeScore, roundToSingleDecimal } from "@/lib/ratings";
+import {
+  applyUserVoteUpsert,
+  applyVoteUpsert,
+  buildCommunityScores,
+  computeCommunityAverage,
+  normalizeScore,
+  roundToSingleDecimal,
+} from "@/lib/ratings";
 
 describe("ratings helpers", () => {
   it("rounds to one decimal place", () => {
@@ -21,5 +28,18 @@ describe("ratings helpers", () => {
 
     expect(second).toHaveLength(1);
     expect(second[0].score).toBe(9.1);
+  });
+
+  it("upserts vote by movie and user id", () => {
+    const first = applyUserVoteUpsert([], { movieId: "m1", userId: "u1", score: 8 });
+    const second = applyUserVoteUpsert(first, { movieId: "m1", userId: "u1", score: 9.2 });
+
+    expect(second).toHaveLength(1);
+    expect(second[0].score).toBe(9.2);
+  });
+
+  it("builds community scores with and without legacy votes", () => {
+    expect(buildCommunityScores([8, 9], [7], true)).toEqual([8, 9, 7]);
+    expect(buildCommunityScores([8, 9], [7], false)).toEqual([8, 9]);
   });
 });

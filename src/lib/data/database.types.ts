@@ -20,6 +20,8 @@ export interface Database {
       actor_movies: GenericTable;
       owner_ratings: GenericTable;
       guest_votes: GenericTable;
+      app_users: GenericTable;
+      user_votes: GenericTable;
       comments: GenericTable;
       comment_reports: GenericTable;
       sync_runs: GenericTable;

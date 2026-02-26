@@ -30,6 +30,7 @@ export interface MovieRatings {
   ownerScore: number | null;
   communityAvg: number;
   communityCount: number;
+  myRating?: number | null;
 }
 
 export interface MovieWithRatings extends Movie {
@@ -53,6 +54,8 @@ export interface Comment {
   body: string;
   createdAt: string;
   status: CommentStatus;
+  userId?: string | null;
+  isVerifiedUser?: boolean;
 }
 
 export interface CommentReport {
@@ -71,6 +74,41 @@ export interface MovieFilters {
 
 export interface PaginatedComments {
   comments: Comment[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface AppUser {
+  id: string;
+  auth0Sub: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserVote {
+  movieId: string;
+  userId: string;
+  score: number;
+  updatedAt: string;
+}
+
+export interface MyRatingItem {
+  movieId: string;
+  movieSlug: string;
+  movieTitle: string;
+  actorSlug: string | null;
+  actorName: string | null;
+  posterUrl: string | null;
+  score: number;
+  updatedAt: string;
+}
+
+export interface MyRatingsPage {
+  items: MyRatingItem[];
   page: number;
   pageSize: number;
   total: number;

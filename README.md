@@ -23,6 +23,8 @@ Tom Hanks first, multi-actor ready.
 - `POST /api/movies/:movieId/rate`
 - `GET /api/movies/:movieId/comments`
 - `POST /api/movies/:movieId/comments`
+- `GET /api/me`
+- `GET /api/me/ratings`
 - `POST /api/comments/:commentId/report`
 - `POST /api/comments/:commentId/delete`
 - `POST /api/admin/sync/actor/:actorSlug` (admin token required)
@@ -38,10 +40,27 @@ Tom Hanks first, multi-actor ready.
 3. Fill Supabase + API keys in `.env.local`.
 4. Run migration in Supabase SQL editor:
    - `supabase/migrations/0001_init.sql`
+   - `supabase/migrations/0002_auth0_accounts.sql`
 5. Seed data:
    - `npm run seed`
 6. Start dev server:
    - `npm run dev`
+
+## Auth0 Setup
+
+1. Install/set the Auth0 env values in `.env.local`:
+   - `AUTH0_DOMAIN`
+   - `AUTH0_CLIENT_ID`
+   - `AUTH0_CLIENT_SECRET`
+   - `AUTH0_SECRET`
+   - `APP_BASE_URL`
+2. In Auth0 application settings, add:
+   - Allowed Callback URLs: `<APP_BASE_URL>/auth/callback`
+   - Allowed Logout URLs: `<APP_BASE_URL>`
+3. App login/logout/profile routes are mounted by Auth0 middleware:
+   - `/auth/login`
+   - `/auth/logout`
+   - `/auth/profile`
 
 ## Sync Operations
 
@@ -81,3 +100,5 @@ Coverage focus:
 
 - The app supports fallback seeded data in UI if Supabase env is missing.
 - For production, disable `HCAPTCHA_BYPASS` and provide real captcha/site keys.
+- Community scores use `user_votes` as the primary source.
+- Legacy guest vote inclusion can be toggled with `INCLUDE_LEGACY_GUEST_VOTES=true|false`.

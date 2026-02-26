@@ -30,3 +30,35 @@ export function applyVoteUpsert(votes: VoteSnapshot[], incoming: VoteSnapshot): 
   next[index] = incoming;
   return next;
 }
+
+export interface UserVoteSnapshot {
+  movieId: string;
+  userId: string;
+  score: number;
+}
+
+export function applyUserVoteUpsert(votes: UserVoteSnapshot[], incoming: UserVoteSnapshot): UserVoteSnapshot[] {
+  const index = votes.findIndex(
+    (vote) => vote.movieId === incoming.movieId && vote.userId === incoming.userId,
+  );
+
+  if (index === -1) {
+    return [...votes, incoming];
+  }
+
+  const next = [...votes];
+  next[index] = incoming;
+  return next;
+}
+
+export function buildCommunityScores(
+  userScores: number[],
+  legacyGuestScores: number[],
+  includeLegacyGuestVotes: boolean,
+): number[] {
+  if (!includeLegacyGuestVotes) {
+    return [...userScores];
+  }
+
+  return [...userScores, ...legacyGuestScores];
+}

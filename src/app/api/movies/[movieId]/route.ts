@@ -1,4 +1,5 @@
 import { getMovieById } from "@/lib/data/queries";
+import { getCurrentAppUser } from "@/lib/auth/user";
 import { jsonError } from "@/lib/http";
 
 import { NextResponse } from "next/server";
@@ -9,7 +10,8 @@ export async function GET(
 ) {
   try {
     const { movieId } = await context.params;
-    const movie = await getMovieById(movieId);
+    const appUser = await getCurrentAppUser({ upsert: false });
+    const movie = await getMovieById(movieId, appUser?.id ?? null);
 
     if (!movie) {
       return jsonError("Movie not found", 404);

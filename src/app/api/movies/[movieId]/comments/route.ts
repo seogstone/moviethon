@@ -1,4 +1,5 @@
 import { createComment, listMovieComments } from "@/lib/data/queries";
+import { getCurrentAppUser } from "@/lib/auth/user";
 import { jsonError } from "@/lib/http";
 import { createDeleteToken } from "@/lib/security/delete-token";
 import { verifyCaptcha } from "@/lib/security/captcha";
@@ -33,6 +34,7 @@ export async function POST(
   try {
     const { movieId } = await context.params;
     const payload = commentPayloadSchema.parse(await request.json());
+    const appUser = await getCurrentAppUser();
 
     const cookieStore = parseCookieHeader(request.headers.get("cookie"));
     const guest = buildGuestContext(cookieStore, request.headers);
@@ -44,13 +46,17 @@ export async function POST(
 
     const writeRate = await enforceRateLimit({
       scope: `comment:${movieId}`,
-      identity: `${guest.fingerprintHash}:${movieId}`,
+      identity: appUser ? `${appUser.id}:${movieId}` : `${guest.fingerprintHash}:${movieId}`,
       limit: 6,
       windowSeconds: 60,
     });
 
     if (!writeRate.allowed) {
       return jsonError(`Too many comments. Try again in ${writeRate.retryAfterSeconds}s`, 429);
+    }
+
+    if (!appUser && !payload.displayName?.trim()) {
+      return jsonError("Display name is required for guest comments", 400);
     }
 
     const cleanedBody = sanitizeCommentBody(payload.body);
@@ -63,9 +69,10 @@ export async function POST(
     const comment = await createComment({
       commentId,
       movieId,
-      displayName: payload.displayName.trim(),
+      displayName: (payload.displayName?.trim() || appUser?.name || "").trim() || "member",
       body: cleanedBody,
       deleteTokenHash: finalToken.tokenHash,
+      userId: appUser?.id ?? null,
     });
 
     const response = NextResponse.json({
@@ -73,7 +80,7 @@ export async function POST(
       deleteToken: finalToken.token,
     });
 
-    if (guest.setCookieHeader) {
+    if (!appUser && guest.setCookieHeader) {
       response.headers.set("set-cookie", guest.setCookieHeader);
     }
 

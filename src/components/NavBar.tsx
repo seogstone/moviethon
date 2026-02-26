@@ -9,11 +9,17 @@ interface NavActor {
   name: string;
 }
 
-interface NavBarProps {
-  actors: NavActor[];
+interface NavViewer {
+  name: string | null;
 }
 
-export function NavBar({ actors }: NavBarProps) {
+interface NavBarProps {
+  actors: NavActor[];
+  viewer: NavViewer | null;
+  authEnabled: boolean;
+}
+
+export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -76,6 +82,44 @@ export function NavBar({ actors }: NavBarProps) {
               </div>
             )}
           </div>
+
+          {authEnabled && viewer && (
+            <Link
+              href="/me/ratings"
+              className={`rounded-full px-3 py-1.5 text-sm transition ${
+                pathname.startsWith("/me/ratings")
+                  ? "bg-[#ecebff] text-[#3733b8]"
+                  : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
+              }`}
+            >
+              my ratings
+            </Link>
+          )}
+
+          {authEnabled && (
+            <>
+              {viewer ? (
+                <>
+                  <span className="hidden rounded-full border border-[#d9d7f2] px-3 py-1.5 text-xs text-[#5c5a82] md:inline-flex">
+                    {viewer.name || "member"}
+                  </span>
+                  <a
+                    href="/auth/logout"
+                    className="rounded-full px-3 py-1.5 text-sm text-[#5c5a82] transition hover:bg-[#f0efff] hover:text-[#2f2d66]"
+                  >
+                    log out
+                  </a>
+                </>
+              ) : (
+                <a
+                  href="/auth/login"
+                  className="rounded-full bg-[#1a1738] px-3 py-1.5 text-sm text-white transition hover:bg-[#111022]"
+                >
+                  log in
+                </a>
+              )}
+            </>
+          )}
         </div>
       </nav>
     </header>

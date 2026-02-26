@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CommunityPanel } from "@/components/CommunityPanel";
+import { getAuthIdentityFromSession } from "@/lib/auth/user";
 import { fallbackActorBySlug, fallbackActorMovies } from "@/lib/data/fallback";
-import { getMovieByActorAndSlug, listMovieComments } from "@/lib/data/queries";
+import { getAppUserByAuth0Sub, getMovieByActorAndSlug, listMovieComments } from "@/lib/data/queries";
 import { formatDate, formatScore } from "@/lib/format";
 import type { Comment } from "@/lib/types";
 
@@ -20,9 +21,21 @@ export default async function MoviePage({ params }: MoviePageProps) {
   const fallbackMovie = fallbackActorMovies(actorSlug).find((movie) => movie.slug === movieSlug) ?? null;
   let movie = fallbackMovie;
   let comments: Comment[] = [];
+  let authIdentity: Awaited<ReturnType<typeof getAuthIdentityFromSession>> = null;
+  let appUser: Awaited<ReturnType<typeof getAppUserByAuth0Sub>> = null;
 
   try {
-    const fromDb = await getMovieByActorAndSlug(actorSlug, movieSlug);
+    authIdentity = await getAuthIdentityFromSession();
+    if (authIdentity) {
+      appUser = await getAppUserByAuth0Sub(authIdentity.auth0Sub);
+    }
+  } catch {
+    authIdentity = null;
+    appUser = null;
+  }
+
+  try {
+    const fromDb = await getMovieByActorAndSlug(actorSlug, movieSlug, appUser?.id ?? null);
     if (fromDb) {
       actor = fromDb.actor;
       movie = fromDb.movie;
@@ -87,6 +100,9 @@ export default async function MoviePage({ params }: MoviePageProps) {
         initialCommunityAvg={movie.ratings.communityAvg}
         initialCommunityCount={movie.ratings.communityCount}
         initialComments={comments}
+        initialMyRating={movie.ratings.myRating ?? null}
+        isAuthenticated={Boolean(authIdentity)}
+        viewerDisplayName={authIdentity?.name ?? null}
       />
     </main>
   );

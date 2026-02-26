@@ -5,6 +5,8 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { NavBar } from "@/components/NavBar";
+import { isAuth0Configured } from "@/lib/auth/auth0";
+import { getAuthIdentityFromSession } from "@/lib/auth/user";
 import { fallbackActors } from "@/lib/data/fallback";
 import { listFeaturedActors } from "@/lib/data/queries";
 import "./globals.css";
@@ -25,6 +27,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
+  const authEnabled = isAuth0Configured();
+  let authIdentity: Awaited<ReturnType<typeof getAuthIdentityFromSession>> = null;
+
+  if (authEnabled) {
+    try {
+      authIdentity = await getAuthIdentityFromSession();
+    } catch {
+      authIdentity = null;
+    }
+  }
 
   let actors = fallbackActors().map((actor) => ({ slug: actor.slug, name: actor.name }));
 
@@ -59,7 +71,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             </noscript>
           </>
         ) : null}
-        <NavBar actors={actors} />
+        <NavBar
+          actors={actors}
+          authEnabled={authEnabled}
+          viewer={authIdentity ? { name: authIdentity.name } : null}
+        />
         {children}
         <Analytics />
         <SpeedInsights />

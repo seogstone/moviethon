@@ -1,7 +1,10 @@
 import { computeCommunityAverage } from "@/lib/ratings";
 import type {
   Actor,
+  AppUser,
   Comment,
+  MyRatingItem,
+  MyRatingsPage,
   Movie,
   MovieFilters,
   MovieWithRatings,
@@ -9,6 +12,7 @@ import type {
 } from "@/lib/types";
 import { filterAndSortMovies } from "@/lib/filter-sort";
 import { getSupabaseServiceClient } from "@/lib/data/supabase";
+import { includeLegacyGuestVotes } from "@/lib/env";
 
 function mapActor(row: Record<string, unknown>): Actor {
   return {
@@ -39,6 +43,8 @@ function mapMovieRow(row: Record<string, unknown>, actorId: string): Movie {
 }
 
 function mapComment(row: Record<string, unknown>): Comment {
+  const userId = row.user_id ? String(row.user_id) : null;
+
   return {
     id: String(row.id),
     movieId: String(row.movie_id),
@@ -46,6 +52,20 @@ function mapComment(row: Record<string, unknown>): Comment {
     body: String(row.body),
     status: String(row.status) as Comment["status"],
     createdAt: String(row.created_at),
+    userId,
+    isVerifiedUser: Boolean(userId),
+  };
+}
+
+function mapAppUser(row: Record<string, unknown>): AppUser {
+  return {
+    id: String(row.id),
+    auth0Sub: String(row.auth0_sub),
+    email: row.email ? String(row.email) : null,
+    name: row.name ? String(row.name) : null,
+    avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
   };
 }
 
@@ -92,7 +112,11 @@ interface MovieBaseRow extends Record<string, unknown> {
   curated_rank: number;
 }
 
-export async function listActorMovies(actorSlug: string, filters: MovieFilters = {}): Promise<MovieWithRatings[]> {
+export async function listActorMovies(
+  actorSlug: string,
+  filters: MovieFilters = {},
+  viewerUserId?: string | null,
+): Promise<MovieWithRatings[]> {
   const actor = await getActorBySlug(actorSlug);
   if (!actor) {
     return [];
@@ -130,13 +154,27 @@ export async function listActorMovies(actorSlug: string, filters: MovieFilters =
     throw ownerError;
   }
 
-  const { data: votes, error: voteError } = await supabase
-    .from("guest_votes")
-    .select("movie_id, score")
+  const { data: userVotes, error: userVotesError } = await supabase
+    .from("user_votes")
+    .select("movie_id, user_id, score")
     .in("movie_id", movieIds);
 
-  if (voteError) {
-    throw voteError;
+  if (userVotesError) {
+    throw userVotesError;
+  }
+
+  let guestVotes: Array<{ movie_id: string; score: number }> = [];
+  if (includeLegacyGuestVotes()) {
+    const { data, error: guestVotesError } = await supabase
+      .from("guest_votes")
+      .select("movie_id, score")
+      .in("movie_id", movieIds);
+
+    if (guestVotesError) {
+      throw guestVotesError;
+    }
+
+    guestVotes = (data ?? []) as Array<{ movie_id: string; score: number }>;
   }
 
   const ownerByMovie = new Map<string, number>();
@@ -146,8 +184,21 @@ export async function listActorMovies(actorSlug: string, filters: MovieFilters =
   }
 
   const scoreByMovie = new Map<string, number[]>();
-  const voteRows = (votes ?? []) as Array<{ movie_id: string; score: number }>;
-  for (const vote of voteRows) {
+  const myRatingByMovie = new Map<string, number>();
+
+  const userVoteRows = (userVotes ?? []) as Array<{ movie_id: string; user_id: string; score: number }>;
+  for (const vote of userVoteRows) {
+    const movieId = String(vote.movie_id);
+    const bucket = scoreByMovie.get(movieId) ?? [];
+    bucket.push(Number(vote.score));
+    scoreByMovie.set(movieId, bucket);
+
+    if (viewerUserId && String(vote.user_id) === viewerUserId) {
+      myRatingByMovie.set(movieId, Number(vote.score));
+    }
+  }
+
+  for (const vote of guestVotes) {
     const movieId = String(vote.movie_id);
     const bucket = scoreByMovie.get(movieId) ?? [];
     bucket.push(Number(vote.score));
@@ -165,6 +216,7 @@ export async function listActorMovies(actorSlug: string, filters: MovieFilters =
         ownerScore: ownerByMovie.get(movie.id) ?? null,
         communityAvg: computeCommunityAverage(scores),
         communityCount: scores.length,
+        myRating: myRatingByMovie.get(movie.id) ?? null,
       },
       curatedRank: row.curatedRank,
     } satisfies MovieWithRatings;
@@ -173,7 +225,7 @@ export async function listActorMovies(actorSlug: string, filters: MovieFilters =
   return filterAndSortMovies(normalized, filters);
 }
 
-export async function getMovieById(movieId: string): Promise<MovieWithRatings | null> {
+export async function getMovieById(movieId: string, viewerUserId?: string | null): Promise<MovieWithRatings | null> {
   const supabase = getSupabaseServiceClient();
 
   const { data: movie, error: movieError } = await supabase.from("movies").select("*").eq("id", movieId).maybeSingle();
@@ -212,14 +264,35 @@ export async function getMovieById(movieId: string): Promise<MovieWithRatings | 
     throw ownerError;
   }
 
-  const { data: votes, error: votesError } = await supabase.from("guest_votes").select("score").eq("movie_id", movieId);
-  if (votesError) {
-    throw votesError;
+  const { data: userVotes, error: userVotesError } = await supabase
+    .from("user_votes")
+    .select("user_id, score")
+    .eq("movie_id", movieId);
+
+  if (userVotesError) {
+    throw userVotesError;
+  }
+
+  let guestVotes: Array<{ score: number }> = [];
+  if (includeLegacyGuestVotes()) {
+    const { data, error: guestVotesError } = await supabase.from("guest_votes").select("score").eq("movie_id", movieId);
+    if (guestVotesError) {
+      throw guestVotesError;
+    }
+
+    guestVotes = (data ?? []) as Array<{ score: number }>;
   }
 
   const ownerRatingRow = ownerRating as { score: number } | null;
-  const voteRows = (votes ?? []) as Array<{ score: number }>;
-  const scores = voteRows.map((item) => Number(item.score));
+  const userVoteRows = (userVotes ?? []) as Array<{ user_id: string; score: number }>;
+  const scores = userVoteRows.map((item) => Number(item.score));
+  for (const vote of guestVotes) {
+    scores.push(Number(vote.score));
+  }
+
+  const myRating = viewerUserId
+    ? userVoteRows.find((vote) => String(vote.user_id) === viewerUserId)?.score ?? null
+    : null;
 
   return {
     ...mapMovieRow(movieRow, actorId),
@@ -228,6 +301,7 @@ export async function getMovieById(movieId: string): Promise<MovieWithRatings | 
       ownerScore: ownerRatingRow?.score ? Number(ownerRatingRow.score) : null,
       communityAvg: computeCommunityAverage(scores),
       communityCount: scores.length,
+      myRating,
     },
     curatedRank: Number(actorMovieRow?.curated_rank ?? 999),
   };
@@ -236,13 +310,14 @@ export async function getMovieById(movieId: string): Promise<MovieWithRatings | 
 export async function getMovieByActorAndSlug(
   actorSlug: string,
   movieSlug: string,
+  viewerUserId?: string | null,
 ): Promise<{ actor: Actor; movie: MovieWithRatings } | null> {
   const actor = await getActorBySlug(actorSlug);
   if (!actor) {
     return null;
   }
 
-  const movies = await listActorMovies(actorSlug);
+  const movies = await listActorMovies(actorSlug, {}, viewerUserId);
   const movie = movies.find((item) => item.slug === movieSlug);
 
   if (!movie) {
@@ -263,7 +338,7 @@ export async function listMovieComments(
 
   const { data, count, error } = await supabase
     .from("comments")
-    .select("id,movie_id,display_name,body,status,created_at", { count: "exact" })
+    .select("id,movie_id,display_name,body,status,created_at,user_id", { count: "exact" })
     .eq("movie_id", movieId)
     .eq("status", "visible")
     .order("created_at", { ascending: false })
@@ -306,12 +381,193 @@ export async function upsertGuestVote(input: {
   }
 }
 
+export async function upsertUserVote(input: {
+  movieId: string;
+  userId: string;
+  score: number;
+}) {
+  const supabase = getSupabaseServiceClient();
+  const now = new Date().toISOString();
+
+  const { error } = await supabase.from("user_votes").upsert(
+    {
+      movie_id: input.movieId,
+      user_id: input.userId,
+      score: input.score,
+      updated_at: now,
+    },
+    { onConflict: "movie_id,user_id" },
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function getAppUserByAuth0Sub(auth0Sub: string): Promise<AppUser | null> {
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase.from("app_users").select("*").eq("auth0_sub", auth0Sub).maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? mapAppUser(data) : null;
+}
+
+export async function upsertAppUser(input: {
+  auth0Sub: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+}): Promise<AppUser> {
+  const supabase = getSupabaseServiceClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("app_users")
+    .upsert(
+      {
+        auth0_sub: input.auth0Sub,
+        email: input.email,
+        name: input.name,
+        avatar_url: input.avatarUrl,
+        updated_at: now,
+      },
+      { onConflict: "auth0_sub" },
+    )
+    .select("*")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapAppUser(data);
+}
+
+export async function getUserContributionSummary(userId: string): Promise<{ ratingsCount: number; commentsCount: number }> {
+  const supabase = getSupabaseServiceClient();
+  const [{ count: ratingsCount, error: ratingsError }, { count: commentsCount, error: commentsError }] = await Promise.all(
+    [
+      supabase.from("user_votes").select("movie_id", { count: "exact", head: true }).eq("user_id", userId),
+      supabase.from("comments").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    ],
+  );
+
+  if (ratingsError) {
+    throw ratingsError;
+  }
+
+  if (commentsError) {
+    throw commentsError;
+  }
+
+  return {
+    ratingsCount: ratingsCount ?? 0,
+    commentsCount: commentsCount ?? 0,
+  };
+}
+
+export async function listRatingsByUser(
+  userId: string,
+  page = 1,
+  pageSize = 20,
+): Promise<MyRatingsPage> {
+  const supabase = getSupabaseServiceClient();
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data: voteRows, count, error } = await supabase
+    .from("user_votes")
+    .select("movie_id,score,updated_at", { count: "exact" })
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    throw error;
+  }
+
+  const votes = (voteRows ?? []) as Array<{ movie_id: string; score: number; updated_at: string }>;
+  const movieIds = votes.map((vote) => String(vote.movie_id));
+  if (!movieIds.length) {
+    return {
+      items: [],
+      page,
+      pageSize,
+      total: count ?? 0,
+    };
+  }
+
+  const [{ data: movies, error: moviesError }, { data: actorRows, error: actorRowsError }] = await Promise.all([
+    supabase.from("movies").select("id,slug,title,poster_url").in("id", movieIds),
+    supabase.from("actor_movies").select("movie_id, actor:actors(slug,name)").in("movie_id", movieIds),
+  ]);
+
+  if (moviesError) {
+    throw moviesError;
+  }
+
+  if (actorRowsError) {
+    throw actorRowsError;
+  }
+
+  const movieById = new Map<string, Record<string, unknown>>();
+  for (const movie of movies ?? []) {
+    movieById.set(String(movie.id), movie);
+  }
+
+  const actorByMovieId = new Map<string, { slug: string | null; name: string | null }>();
+  for (const row of (actorRows ?? []) as Array<{ movie_id: string; actor?: { slug?: string; name?: string } | null }>) {
+    const movieId = String(row.movie_id);
+    if (actorByMovieId.has(movieId)) {
+      continue;
+    }
+
+    actorByMovieId.set(movieId, {
+      slug: row.actor?.slug ? String(row.actor.slug) : null,
+      name: row.actor?.name ? String(row.actor.name) : null,
+    });
+  }
+
+  const items = votes
+    .map((vote) => {
+      const movieId = String(vote.movie_id);
+      const movie = movieById.get(movieId);
+      if (!movie) {
+        return null;
+      }
+
+      const actor = actorByMovieId.get(movieId) ?? { slug: null, name: null };
+      return {
+        movieId,
+        movieSlug: String(movie.slug),
+        movieTitle: String(movie.title),
+        actorSlug: actor.slug,
+        actorName: actor.name,
+        posterUrl: movie.poster_url ? String(movie.poster_url) : null,
+        score: Number(vote.score),
+        updatedAt: String(vote.updated_at),
+      } satisfies MyRatingItem;
+    })
+    .filter((item): item is MyRatingItem => Boolean(item));
+
+  return {
+    items,
+    page,
+    pageSize,
+    total: count ?? 0,
+  };
+}
+
 export async function createComment(input: {
   commentId?: string;
   movieId: string;
   displayName: string;
   body: string;
   deleteTokenHash: string;
+  userId?: string | null;
 }) {
   const supabase = getSupabaseServiceClient();
   const { data, error } = await supabase
@@ -322,9 +578,10 @@ export async function createComment(input: {
       display_name: input.displayName,
       body: input.body,
       delete_token_hash: input.deleteTokenHash,
+      user_id: input.userId ?? null,
       status: "visible",
     })
-    .select("id,movie_id,display_name,body,status,created_at")
+    .select("id,movie_id,display_name,body,status,created_at,user_id")
     .single();
 
   if (error) {

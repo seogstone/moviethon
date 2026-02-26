@@ -6,7 +6,7 @@ export const ratingPayloadSchema = z.object({
 });
 
 export const commentPayloadSchema = z.object({
-  displayName: z.string().min(2).max(50),
+  displayName: z.string().min(2).max(50).optional(),
   body: z.string().min(2).max(1000),
   captchaToken: z.string().min(1),
 });
