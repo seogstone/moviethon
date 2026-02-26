@@ -23,6 +23,12 @@ export function getAuth0Client(): Auth0Client | null {
     return auth0Client;
   }
 
-  auth0Client = new Auth0Client();
+  try {
+    auth0Client = new Auth0Client();
+  } catch (error) {
+    auth0Client = null;
+    console.error("Auth0 disabled due to invalid configuration:", error);
+  }
+
   return auth0Client;
 }
