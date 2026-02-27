@@ -57,7 +57,7 @@ export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
               aria-expanded={open}
               aria-haspopup="menu"
             >
-              Actors ▾
+              actors ▾
             </button>
 
             {open && (
@@ -83,37 +83,20 @@ export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
             )}
           </div>
 
-          {authEnabled && viewer && (
-            <Link
-              href="/me"
-              className={`rounded-full px-3 py-1.5 text-sm transition ${
-                pathname === "/me" ? "bg-[#ecebff] text-[#3733b8]" : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
-              }`}
-            >
-              profile
-            </Link>
-          )}
-
-          {authEnabled && viewer && (
-            <Link
-              href="/me/ratings"
-              className={`rounded-full px-3 py-1.5 text-sm transition ${
-                pathname.startsWith("/me/ratings")
-                  ? "bg-[#ecebff] text-[#3733b8]"
-                  : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
-              }`}
-            >
-              my ratings
-            </Link>
-          )}
-
           {authEnabled && (
             <>
               {viewer ? (
                 <>
-                  <span className="hidden rounded-full border border-[#d9d7f2] px-3 py-1.5 text-xs text-[#5c5a82] md:inline-flex">
+                  <Link
+                    href="/me"
+                    className={`rounded-full border border-[#d9d7f2] px-3 py-1.5 text-xs transition ${
+                      pathname === "/me" || pathname.startsWith("/me/")
+                        ? "bg-[#ecebff] text-[#3733b8]"
+                        : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
+                    }`}
+                  >
                     {viewer.name || "member"}
-                  </span>
+                  </Link>
                   <a
                     href="/auth/logout"
                     className="rounded-full px-3 py-1.5 text-sm text-[#5c5a82] transition hover:bg-[#f0efff] hover:text-[#2f2d66]"
