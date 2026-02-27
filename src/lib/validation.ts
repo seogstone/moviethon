@@ -6,14 +6,12 @@ export const ratingPayloadSchema = z.object({
 });
 
 export const commentPayloadSchema = z.object({
-  displayName: z.string().min(2).max(50).optional(),
   body: z.string().min(2).max(1000),
   captchaToken: z.string().min(1),
 });
 
 export const contributionPayloadSchema = z.object({
   score: z.number().min(1).max(10).optional(),
-  displayName: z.string().min(2).max(50).optional(),
   body: z.string().min(2).max(1000).optional(),
   captchaToken: z.string().min(1),
 });

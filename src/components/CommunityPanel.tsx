@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { HcaptchaWidget } from "@/components/HcaptchaWidget";
@@ -8,32 +9,27 @@ import type { Comment } from "@/lib/types";
 
 interface CommunityPanelProps {
   movieId: string;
-  initialCommunityAvg: number;
-  initialCommunityCount: number;
   initialComments: Comment[];
   initialMyRating?: number | null;
   isAuthenticated: boolean;
   viewerDisplayName?: string | null;
+  onStatsChange?: (stats: { myRating: number | null; communityAvg: number; communityCount: number }) => void;
 }
 
 export function CommunityPanel({
   movieId,
-  initialCommunityAvg,
-  initialCommunityCount,
   initialComments,
   initialMyRating = null,
   isAuthenticated,
   viewerDisplayName,
+  onStatsChange,
 }: CommunityPanelProps) {
   const [score, setScore] = useState<number>(initialMyRating ?? 8);
   const [ratingTouched, setRatingTouched] = useState(false);
-  const [displayName, setDisplayName] = useState(viewerDisplayName ?? "");
   const [commentBody, setCommentBody] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaResetNonce, setCaptchaResetNonce] = useState(0);
   const [comments, setComments] = useState<Comment[]>(initialComments);
-  const [communityAvg, setCommunityAvg] = useState(initialCommunityAvg);
-  const [communityCount, setCommunityCount] = useState(initialCommunityCount);
   const [myRating, setMyRating] = useState<number | null>(initialMyRating);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>({});
@@ -47,6 +43,11 @@ export function CommunityPanel({
   async function submitContribution() {
     setStatusMessage("");
 
+    if (!isAuthenticated) {
+      setStatusMessage("Log in to rate and comment.");
+      return;
+    }
+
     if (!captchaToken) {
       setStatusMessage("Complete captcha before submitting.");
       return;
@@ -54,15 +55,10 @@ export function CommunityPanel({
 
     const commentText = commentBody.trim();
     const shouldSubmitComment = commentText.length > 0;
-    const shouldSubmitRating = isAuthenticated && ratingTouched;
+    const shouldSubmitRating = ratingTouched;
 
     if (!shouldSubmitComment && !shouldSubmitRating) {
       setStatusMessage("Add a comment or change your rating before submitting.");
-      return;
-    }
-
-    if (shouldSubmitComment && !isAuthenticated && !displayName.trim()) {
-      setStatusMessage("Display name is required for guest comments.");
       return;
     }
 
@@ -72,7 +68,6 @@ export function CommunityPanel({
       const requestPayload: {
         captchaToken: string;
         score?: number;
-        displayName?: string;
         body?: string;
       } = { captchaToken };
 
@@ -81,7 +76,6 @@ export function CommunityPanel({
       }
 
       if (shouldSubmitComment) {
-        requestPayload.displayName = displayName;
         requestPayload.body = commentText;
       }
 
@@ -109,12 +103,6 @@ export function CommunityPanel({
         return;
       }
 
-      if (typeof payload.communityAvg === "number") {
-        setCommunityAvg(payload.communityAvg);
-      }
-      if (typeof payload.communityCount === "number") {
-        setCommunityCount(payload.communityCount);
-      }
       if (typeof payload.myRating === "number") {
         setMyRating(payload.myRating);
         setScore(payload.myRating);
@@ -122,6 +110,18 @@ export function CommunityPanel({
 
       if (payload.ratingSaved) {
         setRatingTouched(false);
+      }
+
+      if (
+        onStatsChange &&
+        typeof payload.communityAvg === "number" &&
+        typeof payload.communityCount === "number"
+      ) {
+        onStatsChange({
+          myRating: typeof payload.myRating === "number" ? payload.myRating : myRating,
+          communityAvg: payload.communityAvg,
+          communityCount: payload.communityCount,
+        });
       }
 
       if (payload.commentPosted && payload.comment) {
@@ -210,101 +210,75 @@ export function CommunityPanel({
       id="community"
       className="space-y-5 rounded-3xl border border-[#d9d7f2] bg-white p-5 shadow-[0_12px_26px_rgba(42,39,85,0.05)] sm:p-6"
     >
-      <header className="grid gap-3 md:grid-cols-[1.5fr,1fr,1fr]">
-        <div className="rounded-2xl border border-[#d9d7f2] bg-[#f8f7ff] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">community score</p>
-          <p className="mt-2 text-3xl font-semibold text-[#1a1738]">{formatScore(communityAvg)}</p>
-          <p className="mt-1 text-sm text-[#676489]">
-            based on {communityCount} vote{communityCount === 1 ? "" : "s"}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-[#d9d7f2] bg-[#f8f7ff] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">your rating</p>
-          <p className="mt-2 text-2xl font-semibold text-[#1a1738]">{formatScore(myRating)}</p>
-          <p className="mt-1 text-sm text-[#676489]">{isAuthenticated ? "account linked" : "log in to rate"}</p>
-        </div>
-        <div className="rounded-2xl border border-[#d9d7f2] bg-[#f8f7ff] p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">discussion</p>
-          <p className="mt-2 text-2xl font-semibold text-[#1a1738]">{comments.length}</p>
-          <p className="mt-1 text-sm text-[#676489]">visible comments</p>
-        </div>
-      </header>
-
       <div className="space-y-4 rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-4">
         <div className="space-y-1">
           <h3 className="text-base font-semibold text-[#1a1738]">add your take</h3>
-          <p className="text-sm text-[#676489]">
-            Use one captcha and one submit. You can rate, comment, or do both in one action.
-          </p>
+          <p className="text-sm text-[#676489]">Use one captcha and one submit. You can rate, comment, or do both.</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 rounded-xl border border-[#e4e3f7] bg-white p-3">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">rating (optional)</p>
-            {!isAuthenticated && (
-              <p className="text-sm text-[#4d4a6b]">
-                Ratings require an account. <a href="/auth/login" className="font-medium text-[#605bff]">log in</a> to save yours.
-              </p>
-            )}
-            <label className="block text-sm text-[#4d4a6b]">
-              score (1-10)
-              <input
-                type="number"
-                min={1}
-                max={10}
-                step={0.1}
-                value={score}
-                disabled={!isAuthenticated}
-                onChange={(event) => {
-                  setScore(Number(event.target.value));
-                  setRatingTouched(true);
-                }}
-                className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff] disabled:opacity-60"
-              />
-            </label>
-            <p className="text-xs text-[#676489]">
-              {isAuthenticated
-                ? ratingTouched
-                  ? "rating will be submitted"
-                  : "change score to include rating in this submit"
-                : "comment-only mode until you log in"}
-            </p>
+        {!isAuthenticated ? (
+          <div className="rounded-xl border border-[#d9d7f2] bg-white p-4 text-sm text-[#4d4a6b]">
+            <p>Rate and comment are available for logged-in members.</p>
+            <Link
+              href="/auth/login"
+              className="mt-3 inline-flex rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022]"
+            >
+              log in
+            </Link>
           </div>
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 rounded-xl border border-[#e4e3f7] bg-white p-3">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">rating (optional)</p>
+                <label className="block text-sm text-[#4d4a6b]">
+                  score (1-10)
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    step={0.1}
+                    value={score}
+                    onChange={(event) => {
+                      setScore(Number(event.target.value));
+                      setRatingTouched(true);
+                    }}
+                    className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
+                  />
+                </label>
+                <p className="text-xs text-[#676489]">
+                  {ratingTouched ? "rating will be submitted" : `current saved rating: ${formatScore(myRating)}`}
+                </p>
+              </div>
 
-          <div className="space-y-2 rounded-xl border border-[#e4e3f7] bg-white p-3">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">comment (optional)</p>
-            <label className="block text-sm text-[#4d4a6b]">
-              display name
-              <input
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder={isAuthenticated ? "name shown on your comments" : "required for guests"}
-                className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
-              />
-            </label>
-            <label className="block text-sm text-[#4d4a6b]">
-              comment
-              <textarea
-                value={commentBody}
-                onChange={(event) => setCommentBody(event.target.value)}
-                rows={4}
-                className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
-              />
-            </label>
-          </div>
-        </div>
+              <div className="space-y-2 rounded-xl border border-[#e4e3f7] bg-white p-3">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">comment (optional)</p>
+                <p className="text-xs text-[#676489]">posting as {(viewerDisplayName || "member").trim()}</p>
+                <label className="block text-sm text-[#4d4a6b]">
+                  comment
+                  <textarea
+                    value={commentBody}
+                    onChange={(event) => setCommentBody(event.target.value)}
+                    rows={4}
+                    className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
+                  />
+                </label>
+              </div>
+            </div>
 
-        <div className="space-y-3">
-          <HcaptchaWidget token={captchaToken} onTokenChange={setCaptchaToken} resetNonce={captchaResetNonce} />
-          <button
-            type="button"
-            onClick={submitContribution}
-            disabled={busy || !captchaToken}
-            className="rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022] disabled:opacity-50"
-          >
-            submit contribution
-          </button>
-        </div>
+            <div className="space-y-3">
+              <HcaptchaWidget token={captchaToken} onTokenChange={setCaptchaToken} resetNonce={captchaResetNonce} />
+              <button
+                type="button"
+                onClick={submitContribution}
+                disabled={busy || !captchaToken}
+                className="rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022] disabled:opacity-50"
+              >
+                submit contribution
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {statusMessage && <p className="text-sm text-[#605bff]">{statusMessage}</p>}

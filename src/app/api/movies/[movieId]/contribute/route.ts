@@ -5,7 +5,7 @@ import { jsonError } from "@/lib/http";
 import { normalizeScore } from "@/lib/ratings";
 import { verifyCaptcha } from "@/lib/security/captcha";
 import { createDeleteToken } from "@/lib/security/delete-token";
-import { buildGuestContext, getIpAddress, parseCookieHeader } from "@/lib/security/guest";
+import { getIpAddress } from "@/lib/security/guest";
 import { containsBlockedLanguage, sanitizeCommentBody } from "@/lib/security/moderation";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { contributionPayloadSchema } from "@/lib/validation";
@@ -21,9 +21,9 @@ export async function POST(
     const { movieId } = await context.params;
     const payload = contributionPayloadSchema.parse(await request.json());
     const appUser = await getCurrentAppUser();
-
-    const cookieStore = parseCookieHeader(request.headers.get("cookie"));
-    const guest = buildGuestContext(cookieStore, request.headers);
+    if (!appUser) {
+      return jsonError("Login required to rate and comment", 401);
+    }
     const ipAddress = getIpAddress(request.headers);
     const userAgent = request.headers.get("user-agent") ?? "unknown";
 
@@ -35,7 +35,7 @@ export async function POST(
       return jsonError("Add a comment or change your rating before submitting.", 400);
     }
 
-    const captchaOk = await verifyCaptcha(payload.captchaToken, guest.ipAddress);
+    const captchaOk = await verifyCaptcha(payload.captchaToken, ipAddress);
     if (!captchaOk) {
       return jsonError("Captcha verification failed", 400);
     }
@@ -49,9 +49,7 @@ export async function POST(
 
     if (wantsRating) {
       const ratingScore = payload.score;
-      if (!appUser) {
-        errors.push("Login required to rate movies.");
-      } else if (typeof ratingScore !== "number") {
+      if (typeof ratingScore !== "number") {
         errors.push("Invalid rating score.");
       } else {
         const ipHash = sha256(ipAddress);
@@ -92,15 +90,13 @@ export async function POST(
     if (wantsComment) {
       const writeRate = await enforceRateLimit({
         scope: `comment:${movieId}`,
-        identity: appUser ? `${appUser.id}:${movieId}` : `${guest.fingerprintHash}:${movieId}`,
+        identity: `${appUser.id}:${movieId}`,
         limit: 6,
         windowSeconds: 60,
       });
 
       if (!writeRate.allowed) {
         errors.push(`Too many comments. Try again in ${writeRate.retryAfterSeconds}s.`);
-      } else if (!appUser && !payload.displayName?.trim()) {
-        errors.push("Display name is required for guest comments.");
       } else {
         const cleanedBody = sanitizeCommentBody(commentBody);
         if (containsBlockedLanguage(cleanedBody)) {
@@ -112,11 +108,10 @@ export async function POST(
           postedComment = await createComment({
             commentId,
             movieId,
-            displayName:
-              (payload.displayName?.trim() || appUser?.displayName || appUser?.name || "").trim() || "member",
+            displayName: (appUser.displayName || appUser.name || "").trim() || "member",
             body: cleanedBody,
             deleteTokenHash: finalToken.tokenHash,
-            userId: appUser?.id ?? null,
+            userId: appUser.id,
           });
 
           deleteToken = finalToken.token;
@@ -130,7 +125,7 @@ export async function POST(
       return NextResponse.json({ error: errors.join(" ") || "Submission failed." }, { status: 400 });
     }
 
-    const movie = await getMovieById(movieId, appUser?.id ?? null);
+    const movie = await getMovieById(movieId, appUser.id);
     if (!movie) {
       return jsonError("Movie not found", 404);
     }
@@ -147,10 +142,6 @@ export async function POST(
       comment: postedComment,
       deleteToken,
     });
-
-    if (!appUser && guest.setCookieHeader && postedComment) {
-      response.headers.set("set-cookie", guest.setCookieHeader);
-    }
 
     return response;
   } catch (error) {

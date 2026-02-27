@@ -3,7 +3,7 @@ import { getCurrentAppUser } from "@/lib/auth/user";
 import { jsonError } from "@/lib/http";
 import { createDeleteToken } from "@/lib/security/delete-token";
 import { verifyCaptcha } from "@/lib/security/captcha";
-import { buildGuestContext, parseCookieHeader } from "@/lib/security/guest";
+import { getIpAddress } from "@/lib/security/guest";
 import { containsBlockedLanguage, sanitizeCommentBody } from "@/lib/security/moderation";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { commentPayloadSchema } from "@/lib/validation";
@@ -35,28 +35,26 @@ export async function POST(
     const { movieId } = await context.params;
     const payload = commentPayloadSchema.parse(await request.json());
     const appUser = await getCurrentAppUser();
+    if (!appUser) {
+      return jsonError("Login required to comment", 401);
+    }
 
-    const cookieStore = parseCookieHeader(request.headers.get("cookie"));
-    const guest = buildGuestContext(cookieStore, request.headers);
+    const ipAddress = getIpAddress(request.headers);
 
-    const captchaOk = await verifyCaptcha(payload.captchaToken, guest.ipAddress);
+    const captchaOk = await verifyCaptcha(payload.captchaToken, ipAddress);
     if (!captchaOk) {
       return jsonError("Captcha verification failed", 400);
     }
 
     const writeRate = await enforceRateLimit({
       scope: `comment:${movieId}`,
-      identity: appUser ? `${appUser.id}:${movieId}` : `${guest.fingerprintHash}:${movieId}`,
+      identity: `${appUser.id}:${movieId}`,
       limit: 6,
       windowSeconds: 60,
     });
 
     if (!writeRate.allowed) {
       return jsonError(`Too many comments. Try again in ${writeRate.retryAfterSeconds}s`, 429);
-    }
-
-    if (!appUser && !payload.displayName?.trim()) {
-      return jsonError("Display name is required for guest comments", 400);
     }
 
     const cleanedBody = sanitizeCommentBody(payload.body);
@@ -69,22 +67,16 @@ export async function POST(
     const comment = await createComment({
       commentId,
       movieId,
-      displayName: (payload.displayName?.trim() || appUser?.displayName || appUser?.name || "").trim() || "member",
+      displayName: (appUser.displayName || appUser.name || "").trim() || "member",
       body: cleanedBody,
       deleteTokenHash: finalToken.tokenHash,
-      userId: appUser?.id ?? null,
+      userId: appUser.id,
     });
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       comment,
       deleteToken: finalToken.token,
     });
-
-    if (!appUser && guest.setCookieHeader) {
-      response.headers.set("set-cookie", guest.setCookieHeader);
-    }
-
-    return response;
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Failed to post comment", 400);
   }
