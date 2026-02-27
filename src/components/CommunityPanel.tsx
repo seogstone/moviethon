@@ -28,7 +28,7 @@ export function CommunityPanel({
   const [score, setScore] = useState<number>(initialMyRating ?? 8);
   const [displayName, setDisplayName] = useState(viewerDisplayName ?? "");
   const [commentBody, setCommentBody] = useState("");
-  const [captchaToken, setCaptchaToken] = useState("local-test");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [communityAvg, setCommunityAvg] = useState(initialCommunityAvg);
   const [communityCount, setCommunityCount] = useState(initialCommunityCount);

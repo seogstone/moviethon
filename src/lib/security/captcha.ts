@@ -2,10 +2,14 @@ import { isCaptchaBypassEnabled, readEnv } from "@/lib/env";
 
 interface CaptchaResponse {
   success: boolean;
+  hostname?: string;
+  challenge_ts?: string;
+  "error-codes"?: string[];
 }
 
 export async function verifyCaptcha(token: string, remoteIp?: string): Promise<boolean> {
   if (!token) {
+    console.warn("hCaptcha verification failed: missing token");
     return false;
   }
 
@@ -15,6 +19,7 @@ export async function verifyCaptcha(token: string, remoteIp?: string): Promise<b
 
   const secret = readEnv("HCAPTCHA_SECRET");
   if (!secret) {
+    console.error("hCaptcha verification failed: missing HCAPTCHA_SECRET");
     return false;
   }
 
@@ -37,12 +42,21 @@ export async function verifyCaptcha(token: string, remoteIp?: string): Promise<b
     });
 
     if (!response.ok) {
+      console.error("hCaptcha verification request failed", { status: response.status });
       return false;
     }
 
     const parsed = (await response.json()) as CaptchaResponse;
+    if (!parsed.success) {
+      console.error("hCaptcha verification failed", {
+        errorCodes: parsed["error-codes"] ?? [],
+        hostname: parsed.hostname ?? null,
+        challengeTs: parsed.challenge_ts ?? null,
+      });
+    }
     return parsed.success;
-  } catch {
+  } catch (error) {
+    console.error("hCaptcha verification exception", error);
     return false;
   }
 }

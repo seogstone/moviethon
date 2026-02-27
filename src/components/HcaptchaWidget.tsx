@@ -17,6 +17,7 @@ interface HcaptchaWidgetProps {
 }
 
 const SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
+const IS_DEV = process.env.NODE_ENV !== "production";
 
 export function HcaptchaWidget({ token, onTokenChange }: HcaptchaWidgetProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -24,7 +25,11 @@ export function HcaptchaWidget({ token, onTokenChange }: HcaptchaWidgetProps) {
 
   useEffect(() => {
     if (!SITE_KEY) {
-      onTokenChange("local-test");
+      if (IS_DEV) {
+        onTokenChange("local-test");
+      } else {
+        onTokenChange("");
+      }
       return;
     }
 
@@ -62,6 +67,14 @@ export function HcaptchaWidget({ token, onTokenChange }: HcaptchaWidgetProps) {
   }, [onTokenChange]);
 
   if (!SITE_KEY) {
+    if (!IS_DEV) {
+      return (
+        <p className="text-xs text-[#c26b00]">
+          Captcha is misconfigured. Missing `NEXT_PUBLIC_HCAPTCHA_SITE_KEY`.
+        </p>
+      );
+    }
+
     return (
       <p className="text-xs text-[#8e8e93]">
         Captcha bypass enabled for local development (`HCAPTCHA_BYPASS=true`).
