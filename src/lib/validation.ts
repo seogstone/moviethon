@@ -11,6 +11,13 @@ export const commentPayloadSchema = z.object({
   captchaToken: z.string().min(1),
 });
 
+export const contributionPayloadSchema = z.object({
+  score: z.number().min(1).max(10).optional(),
+  displayName: z.string().min(2).max(50).optional(),
+  body: z.string().min(2).max(1000).optional(),
+  captchaToken: z.string().min(1),
+});
+
 export const commentReportSchema = z.object({
   reason: z.string().min(3).max(300),
 });

@@ -26,9 +26,11 @@ export function CommunityPanel({
   viewerDisplayName,
 }: CommunityPanelProps) {
   const [score, setScore] = useState<number>(initialMyRating ?? 8);
+  const [ratingTouched, setRatingTouched] = useState(false);
   const [displayName, setDisplayName] = useState(viewerDisplayName ?? "");
   const [commentBody, setCommentBody] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetNonce, setCaptchaResetNonce] = useState(0);
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [communityAvg, setCommunityAvg] = useState(initialCommunityAvg);
   const [communityCount, setCommunityCount] = useState(initialCommunityCount);
@@ -42,31 +44,69 @@ export function CommunityPanel({
     [comments],
   );
 
-  async function submitRating() {
-    if (!isAuthenticated) {
-      setStatusMessage("Log in to submit ratings.");
+  async function submitContribution() {
+    setStatusMessage("");
+
+    if (!captchaToken) {
+      setStatusMessage("Complete captcha before submitting.");
+      return;
+    }
+
+    const commentText = commentBody.trim();
+    const shouldSubmitComment = commentText.length > 0;
+    const shouldSubmitRating = isAuthenticated && ratingTouched;
+
+    if (!shouldSubmitComment && !shouldSubmitRating) {
+      setStatusMessage("Add a comment or change your rating before submitting.");
+      return;
+    }
+
+    if (shouldSubmitComment && !isAuthenticated && !displayName.trim()) {
+      setStatusMessage("Display name is required for guest comments.");
       return;
     }
 
     setBusy(true);
-    setStatusMessage("");
 
     try {
-      const response = await fetch(`/api/movies/${movieId}/rate`, {
+      const requestPayload: {
+        captchaToken: string;
+        score?: number;
+        displayName?: string;
+        body?: string;
+      } = { captchaToken };
+
+      if (shouldSubmitRating) {
+        requestPayload.score = score;
+      }
+
+      if (shouldSubmitComment) {
+        requestPayload.displayName = displayName;
+        requestPayload.body = commentText;
+      }
+
+      const response = await fetch(`/api/movies/${movieId}/contribute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ score, captchaToken }),
+        body: JSON.stringify(requestPayload),
       });
 
       const payload = (await response.json()) as {
         error?: string;
+        notices?: string[];
+        errors?: string[];
+        ratingSaved?: boolean;
+        commentPosted?: boolean;
         communityAvg?: number;
         communityCount?: number;
         myRating?: number | null;
+        comment?: Comment | null;
+        deleteToken?: string | null;
       };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Rating failed");
+        setStatusMessage(payload.error ?? "Submission failed");
+        return;
       }
 
       if (typeof payload.communityAvg === "number") {
@@ -80,53 +120,34 @@ export function CommunityPanel({
         setScore(payload.myRating);
       }
 
-      setStatusMessage("Rating saved.");
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Rating failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitComment() {
-    setBusy(true);
-    setStatusMessage("");
-
-    try {
-      const response = await fetch(`/api/movies/${movieId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          displayName,
-          body: commentBody,
-          captchaToken,
-        }),
-      });
-
-      const payload = (await response.json()) as {
-        error?: string;
-        comment?: Comment;
-        deleteToken?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Comment failed");
+      if (payload.ratingSaved) {
+        setRatingTouched(false);
       }
 
-      const postedComment = payload.comment;
-      if (postedComment) {
+      if (payload.commentPosted && payload.comment) {
+        const postedComment = payload.comment;
         setComments((prev) => [postedComment, ...prev]);
-        if (payload.deleteToken) {
-          setDeleteTokens((prev) => ({ ...prev, [postedComment.id]: payload.deleteToken as string }));
+        setCommentBody("");
+        const deleteToken = payload.deleteToken;
+        if (deleteToken) {
+          setDeleteTokens((prev) => ({ ...prev, [postedComment.id]: deleteToken }));
         }
       }
 
-      setCommentBody("");
-      setStatusMessage("Comment posted.");
+      const notices = payload.notices ?? [];
+      const errors = payload.errors ?? [];
+      if (errors.length && notices.length) {
+        setStatusMessage(`${notices.join(" ")} ${errors.join(" ")}`);
+      } else if (errors.length) {
+        setStatusMessage(errors.join(" "));
+      } else if (notices.length) {
+        setStatusMessage(notices.join(" "));
+      }
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Comment failed");
+      setStatusMessage(error instanceof Error ? error.message : "Submission failed");
     } finally {
       setBusy(false);
+      setCaptchaResetNonce((prev) => prev + 1);
     }
   }
 
@@ -187,81 +208,101 @@ export function CommunityPanel({
   return (
     <section
       id="community"
-      className="space-y-6 rounded-3xl border border-[#d9d7f2] bg-white p-5 shadow-[0_12px_26px_rgba(42,39,85,0.05)] sm:p-6"
+      className="space-y-5 rounded-3xl border border-[#d9d7f2] bg-white p-5 shadow-[0_12px_26px_rgba(42,39,85,0.05)] sm:p-6"
     >
-      <div>
-        <h2 className="text-2xl font-semibold text-[#1a1738]">community score</h2>
-        <p className="mt-1 text-sm text-[#676489]">
-          {formatScore(communityAvg)} from {communityCount} vote{communityCount === 1 ? "" : "s"}
-        </p>
-      </div>
+      <header className="grid gap-3 md:grid-cols-[1.5fr,1fr,1fr]">
+        <div className="rounded-2xl border border-[#d9d7f2] bg-[#f8f7ff] p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">community score</p>
+          <p className="mt-2 text-3xl font-semibold text-[#1a1738]">{formatScore(communityAvg)}</p>
+          <p className="mt-1 text-sm text-[#676489]">
+            based on {communityCount} vote{communityCount === 1 ? "" : "s"}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-[#d9d7f2] bg-[#f8f7ff] p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">your rating</p>
+          <p className="mt-2 text-2xl font-semibold text-[#1a1738]">{formatScore(myRating)}</p>
+          <p className="mt-1 text-sm text-[#676489]">{isAuthenticated ? "account linked" : "log in to rate"}</p>
+        </div>
+        <div className="rounded-2xl border border-[#d9d7f2] bg-[#f8f7ff] p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">discussion</p>
+          <p className="mt-2 text-2xl font-semibold text-[#1a1738]">{comments.length}</p>
+          <p className="mt-1 text-sm text-[#676489]">visible comments</p>
+        </div>
+      </header>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="space-y-3 rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-4">
-          <h3 className="text-sm font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">rate this movie</h3>
-
-          {!isAuthenticated && (
-            <p className="rounded-xl border border-[#d9d7f2] bg-white p-3 text-sm text-[#4d4a6b]">
-              Ratings require an account. <a href="/auth/login" className="font-medium text-[#605bff]">log in</a> to track your scores.
-            </p>
-          )}
-
-          {isAuthenticated && (
-            <>
-              <label className="block text-sm text-[#4d4a6b]">
-                score (1-10)
-                <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  step={0.1}
-                  value={score}
-                  onChange={(event) => setScore(Number(event.target.value))}
-                  className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
-                />
-              </label>
-              {myRating !== null && <p className="text-xs text-[#676489]">your saved rating: {formatScore(myRating)}</p>}
-            </>
-          )}
-
-          <HcaptchaWidget token={captchaToken} onTokenChange={setCaptchaToken} />
-          <button
-            type="button"
-            onClick={submitRating}
-            disabled={busy || !captchaToken || !isAuthenticated}
-            className="rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022] disabled:opacity-50"
-          >
-            {myRating === null ? "submit rating" : "update rating"}
-          </button>
+      <div className="space-y-4 rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-4">
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold text-[#1a1738]">add your take</h3>
+          <p className="text-sm text-[#676489]">
+            Use one captcha and one submit. You can rate, comment, or do both in one action.
+          </p>
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-4">
-          <h3 className="text-sm font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">leave a comment</h3>
-          <label className="block text-sm text-[#4d4a6b]">
-            display name
-            <input
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              placeholder={isAuthenticated ? "name shown on your comments" : "required for guests"}
-              className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
-            />
-          </label>
-          <label className="block text-sm text-[#4d4a6b]">
-            comment
-            <textarea
-              value={commentBody}
-              onChange={(event) => setCommentBody(event.target.value)}
-              rows={4}
-              className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
-            />
-          </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2 rounded-xl border border-[#e4e3f7] bg-white p-3">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">rating (optional)</p>
+            {!isAuthenticated && (
+              <p className="text-sm text-[#4d4a6b]">
+                Ratings require an account. <a href="/auth/login" className="font-medium text-[#605bff]">log in</a> to save yours.
+              </p>
+            )}
+            <label className="block text-sm text-[#4d4a6b]">
+              score (1-10)
+              <input
+                type="number"
+                min={1}
+                max={10}
+                step={0.1}
+                value={score}
+                disabled={!isAuthenticated}
+                onChange={(event) => {
+                  setScore(Number(event.target.value));
+                  setRatingTouched(true);
+                }}
+                className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff] disabled:opacity-60"
+              />
+            </label>
+            <p className="text-xs text-[#676489]">
+              {isAuthenticated
+                ? ratingTouched
+                  ? "rating will be submitted"
+                  : "change score to include rating in this submit"
+                : "comment-only mode until you log in"}
+            </p>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-[#e4e3f7] bg-white p-3">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">comment (optional)</p>
+            <label className="block text-sm text-[#4d4a6b]">
+              display name
+              <input
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                placeholder={isAuthenticated ? "name shown on your comments" : "required for guests"}
+                className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
+              />
+            </label>
+            <label className="block text-sm text-[#4d4a6b]">
+              comment
+              <textarea
+                value={commentBody}
+                onChange={(event) => setCommentBody(event.target.value)}
+                rows={4}
+                className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <HcaptchaWidget token={captchaToken} onTokenChange={setCaptchaToken} resetNonce={captchaResetNonce} />
           <button
             type="button"
-            onClick={submitComment}
-            disabled={busy || !captchaToken || !commentBody.trim() || (!isAuthenticated && !displayName.trim())}
-            className="rounded-xl bg-[#605bff] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#504bd8] disabled:opacity-50"
+            onClick={submitContribution}
+            disabled={busy || !captchaToken}
+            className="rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022] disabled:opacity-50"
           >
-            post comment
+            submit contribution
           </button>
         </div>
       </div>
@@ -269,7 +310,11 @@ export function CommunityPanel({
       {statusMessage && <p className="text-sm text-[#605bff]">{statusMessage}</p>}
 
       <footer className="space-y-3 border-t border-[#e4e3f7] pt-5">
-        <h3 className="text-sm font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">comment feed</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold text-[#1a1738]">comment feed</h3>
+          <p className="text-xs text-[#8d8ab0]">latest first</p>
+        </div>
+
         {!sortedComments.length && <p className="text-sm text-[#676489]">no comments yet.</p>}
         <ul className="space-y-3">
           {sortedComments.map((comment) => (

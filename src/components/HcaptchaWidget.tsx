@@ -14,12 +14,13 @@ declare global {
 interface HcaptchaWidgetProps {
   token: string;
   onTokenChange: (token: string) => void;
+  resetNonce?: number;
 }
 
 const SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-export function HcaptchaWidget({ token, onTokenChange }: HcaptchaWidgetProps) {
+export function HcaptchaWidget({ token, onTokenChange, resetNonce }: HcaptchaWidgetProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<number | null>(null);
 
@@ -65,6 +66,19 @@ export function HcaptchaWidget({ token, onTokenChange }: HcaptchaWidgetProps) {
       script.onload = null;
     };
   }, [onTokenChange]);
+
+  useEffect(() => {
+    if (resetNonce === undefined) {
+      return;
+    }
+
+    if (!window.hcaptcha || widgetIdRef.current === null) {
+      return;
+    }
+
+    window.hcaptcha.reset(widgetIdRef.current);
+    onTokenChange("");
+  }, [onTokenChange, resetNonce]);
 
   if (!SITE_KEY) {
     if (!IS_DEV) {
