@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ProfileForm } from "@/components/ProfileForm";
 import { getCurrentAppUser } from "@/lib/auth/user";
-import { getUserContributionSummary, listRatingsByUser } from "@/lib/data/queries";
+import { getUserContributionSummary, listRatingsByUser, listWatchlistByUser } from "@/lib/data/queries";
 import { formatDate, formatScore } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,7 @@ export default async function MyProfilePage() {
 
   const summary = await getUserContributionSummary(appUser.id);
   const recentRatings = await listRatingsByUser(appUser.id, 1, 12);
+  const watchlist = await listWatchlistByUser(appUser.id, 1, 12);
   const averageRating = recentRatings.items.length
     ? recentRatings.items.reduce((sum, item) => sum + item.score, 0) / recentRatings.items.length
     : null;
@@ -58,6 +59,53 @@ export default async function MyProfilePage() {
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">last rated</p>
             <p className="mt-1 text-sm font-medium text-[#1a1738]">{lastRated ? formatDate(lastRated) : "N/A"}</p>
           </div>
+          <div className="rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-4">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">watchlist</p>
+            <p className="mt-1 text-2xl font-semibold text-[#1a1738]">{summary.watchlistCount}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-3xl border border-[#d9d7f2] bg-white p-5 shadow-[0_12px_30px_rgba(42,39,85,0.05)] sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-[#1a1738]">my watchlist</h2>
+        </div>
+
+        {!watchlist.items.length && (
+          <p className="rounded-2xl border border-[#d9d7f2] bg-[#f8f7ff] p-4 text-sm text-[#676489]">
+            no watchlist items yet. tap the star icon on movie cards to save titles for later.
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+          {watchlist.items.map((item) => {
+            const href = item.actorSlug
+              ? `/actors/${item.actorSlug}/movies/${item.movieSlug}`
+              : `/api/movies/${item.movieId}`;
+
+            return (
+              <Link
+                key={`${item.movieId}:${item.addedAt}`}
+                href={href}
+                className="group overflow-hidden rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] transition hover:-translate-y-0.5 hover:border-[#c9c6ef]"
+              >
+                <div
+                  className="aspect-[2/3] w-full border-b border-[#e4e3f7] bg-no-repeat bg-center"
+                  style={{
+                    backgroundImage: item.posterUrl
+                      ? `url(${item.posterUrl})`
+                      : "linear-gradient(180deg, #f2f1ff, #fafafe)",
+                    backgroundSize: "cover",
+                    backgroundColor: "#f3f2ff",
+                  }}
+                />
+                <div className="space-y-1 p-2.5">
+                  <p className="line-clamp-1 text-xs font-medium text-[#1a1738]">{item.movieTitle}</p>
+                  <p className="text-[11px] text-[#676489]">saved {formatDate(item.addedAt)}</p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

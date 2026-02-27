@@ -12,6 +12,8 @@ import type {
   MovieFilters,
   MovieWithRatings,
   PaginatedComments,
+  WatchlistItem,
+  WatchlistPage,
 } from "@/lib/types";
 import { filterAndSortMovies } from "@/lib/filter-sort";
 import { getSupabaseServiceClient } from "@/lib/data/supabase";
@@ -625,12 +627,19 @@ export async function updateAppUserProfile(input: {
   return mapAppUser(data);
 }
 
-export async function getUserContributionSummary(userId: string): Promise<{ ratingsCount: number; commentsCount: number }> {
+export async function getUserContributionSummary(
+  userId: string,
+): Promise<{ ratingsCount: number; commentsCount: number; watchlistCount: number }> {
   const supabase = getSupabaseServiceClient();
-  const [{ count: ratingsCount, error: ratingsError }, { count: commentsCount, error: commentsError }] = await Promise.all(
+  const [
+    { count: ratingsCount, error: ratingsError },
+    { count: commentsCount, error: commentsError },
+    { count: watchlistCount, error: watchlistError },
+  ] = await Promise.all(
     [
       supabase.from("user_votes").select("movie_id", { count: "exact", head: true }).eq("user_id", userId),
       supabase.from("comments").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      supabase.from("user_watchlist").select("movie_id", { count: "exact", head: true }).eq("user_id", userId),
     ],
   );
 
@@ -642,9 +651,14 @@ export async function getUserContributionSummary(userId: string): Promise<{ rati
     throw commentsError;
   }
 
+  if (watchlistError) {
+    throw watchlistError;
+  }
+
   return {
     ratingsCount: ratingsCount ?? 0,
     commentsCount: commentsCount ?? 0,
+    watchlistCount: watchlistCount ?? 0,
   };
 }
 
@@ -738,6 +752,160 @@ export async function listRatingsByUser(
     pageSize,
     total: count ?? 0,
   };
+}
+
+export async function listWatchlistByUser(
+  userId: string,
+  page = 1,
+  pageSize = 20,
+): Promise<WatchlistPage> {
+  const supabase = getSupabaseServiceClient();
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data: watchRows, count, error } = await supabase
+    .from("user_watchlist")
+    .select("movie_id,created_at", { count: "exact" })
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    throw error;
+  }
+
+  const watchlist = (watchRows ?? []) as Array<{ movie_id: string; created_at: string }>;
+  const movieIds = watchlist.map((row) => String(row.movie_id));
+  if (!movieIds.length) {
+    return {
+      items: [],
+      page,
+      pageSize,
+      total: count ?? 0,
+    };
+  }
+
+  const [{ data: movies, error: moviesError }, { data: actorRows, error: actorRowsError }] = await Promise.all([
+    supabase.from("movies").select("id,slug,title,poster_url").in("id", movieIds),
+    supabase.from("actor_movies").select("movie_id, actor:actors(slug,name)").in("movie_id", movieIds),
+  ]);
+
+  if (moviesError) {
+    throw moviesError;
+  }
+
+  if (actorRowsError) {
+    throw actorRowsError;
+  }
+
+  const movieById = new Map<string, Record<string, unknown>>();
+  for (const movie of movies ?? []) {
+    movieById.set(String(movie.id), movie);
+  }
+
+  const actorByMovieId = new Map<string, { slug: string | null; name: string | null }>();
+  for (const row of (actorRows ?? []) as Array<{ movie_id: string; actor?: { slug?: string; name?: string } | null }>) {
+    const movieId = String(row.movie_id);
+    if (actorByMovieId.has(movieId)) {
+      continue;
+    }
+
+    actorByMovieId.set(movieId, {
+      slug: row.actor?.slug ? String(row.actor.slug) : null,
+      name: row.actor?.name ? String(row.actor.name) : null,
+    });
+  }
+
+  const items = watchlist
+    .map((row) => {
+      const movieId = String(row.movie_id);
+      const movie = movieById.get(movieId);
+      if (!movie) {
+        return null;
+      }
+
+      const actor = actorByMovieId.get(movieId) ?? { slug: null, name: null };
+      return {
+        movieId,
+        movieSlug: String(movie.slug),
+        movieTitle: String(movie.title),
+        actorSlug: actor.slug,
+        actorName: actor.name,
+        posterUrl: movie.poster_url ? String(movie.poster_url) : null,
+        addedAt: String(row.created_at),
+      } satisfies WatchlistItem;
+    })
+    .filter((item): item is WatchlistItem => Boolean(item));
+
+  return {
+    items,
+    page,
+    pageSize,
+    total: count ?? 0,
+  };
+}
+
+export async function addMovieToWatchlist(userId: string, movieId: string): Promise<void> {
+  const supabase = getSupabaseServiceClient();
+  const now = new Date().toISOString();
+
+  const { error } = await supabase.from("user_watchlist").upsert(
+    {
+      user_id: userId,
+      movie_id: movieId,
+      created_at: now,
+      updated_at: now,
+    },
+    { onConflict: "user_id,movie_id" },
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function removeMovieFromWatchlist(userId: string, movieId: string): Promise<void> {
+  const supabase = getSupabaseServiceClient();
+  const { error } = await supabase.from("user_watchlist").delete().eq("user_id", userId).eq("movie_id", movieId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function listWatchlistMovieIdsForUser(userId: string, movieIds: string[]): Promise<Set<string>> {
+  if (!movieIds.length) {
+    return new Set<string>();
+  }
+
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("user_watchlist")
+    .select("movie_id")
+    .eq("user_id", userId)
+    .in("movie_id", movieIds);
+
+  if (error) {
+    throw error;
+  }
+
+  return new Set((data ?? []).map((row) => String(row.movie_id)));
+}
+
+export async function isMovieInWatchlist(userId: string, movieId: string): Promise<boolean> {
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("user_watchlist")
+    .select("movie_id")
+    .eq("user_id", userId)
+    .eq("movie_id", movieId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data);
 }
 
 export async function createComment(input: {

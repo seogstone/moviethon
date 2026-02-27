@@ -116,6 +116,23 @@ export interface MyRatingsPage {
   total: number;
 }
 
+export interface WatchlistItem {
+  movieId: string;
+  movieSlug: string;
+  movieTitle: string;
+  actorSlug: string | null;
+  actorName: string | null;
+  posterUrl: string | null;
+  addedAt: string;
+}
+
+export interface WatchlistPage {
+  items: WatchlistItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
 export interface ActorMarketMetric {
   actorId: string;
   actorSlug: string;

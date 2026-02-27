@@ -4,9 +4,10 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { MovieEngagementSection } from "@/components/MovieEngagementSection";
+import { WatchlistToggle } from "@/components/WatchlistToggle";
 import { getAuthIdentityFromSession } from "@/lib/auth/user";
 import { fallbackActorBySlug, fallbackActorMovies } from "@/lib/data/fallback";
-import { getAppUserByAuth0Sub, getMovieByActorAndSlug, listMovieComments } from "@/lib/data/queries";
+import { getAppUserByAuth0Sub, getMovieByActorAndSlug, isMovieInWatchlist, listMovieComments } from "@/lib/data/queries";
 import { formatDate } from "@/lib/format";
 import type { Comment } from "@/lib/types";
 import { fetchTmdbWatchProviders } from "@/lib/watch-providers";
@@ -41,6 +42,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
   let comments: Comment[] = [];
   let watchProviders: Awaited<ReturnType<typeof fetchTmdbWatchProviders>> = null;
   let watchProviderRegion = visitorRegion;
+  let inWatchlist = false;
   let authIdentity: Awaited<ReturnType<typeof getAuthIdentityFromSession>> = null;
   let appUser: Awaited<ReturnType<typeof getAppUserByAuth0Sub>> = null;
 
@@ -61,6 +63,9 @@ export default async function MoviePage({ params }: MoviePageProps) {
       movie = fromDb.movie;
       const commentResult = await listMovieComments(fromDb.movie.id, 1, 20);
       comments = commentResult.comments;
+      if (appUser) {
+        inWatchlist = await isMovieInWatchlist(appUser.id, fromDb.movie.id);
+      }
       if (fromDb.movie.tmdbId) {
         watchProviders = await fetchTmdbWatchProviders(fromDb.movie.tmdbId, visitorRegion);
 
@@ -110,7 +115,14 @@ export default async function MoviePage({ params }: MoviePageProps) {
           />
 
           <div className="space-y-4">
-            <h1 className="text-4xl font-semibold text-[#1a1738]">{movie.title}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-4xl font-semibold text-[#1a1738]">{movie.title}</h1>
+              <WatchlistToggle
+                movieId={movie.id}
+                initialInWatchlist={inWatchlist}
+                isAuthenticated={Boolean(authIdentity)}
+              />
+            </div>
             <p className="text-sm text-[#676489]">
               {formatDate(movie.releaseDate)} • {movie.genres.join(" • ")}
             </p>

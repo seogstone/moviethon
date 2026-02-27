@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 
 import { MovieGrid } from "@/components/MovieGrid";
 import { MovieGridControls } from "@/components/MovieGridControls";
+import { getCurrentAppUser } from "@/lib/auth/user";
 import { filterAndSortMovies } from "@/lib/filter-sort";
 import { fallbackActorBySlug, fallbackActorMovies } from "@/lib/data/fallback";
-import { getActorBySlug, listActorMovies } from "@/lib/data/queries";
+import { getActorBySlug, listActorMovies, listWatchlistMovieIdsForUser } from "@/lib/data/queries";
 import { formatScore } from "@/lib/format";
 import { parseMovieFilters } from "@/lib/query-params";
 import { computeActorRollupRatings } from "@/lib/ratings";
@@ -45,6 +46,14 @@ export default async function ActorPage({ params, searchParams }: ActorPageProps
   let actor = fallbackActorBySlug(actorSlug);
   let allMovies = fallbackActorMovies(actorSlug);
   let movies = filterAndSortMovies(allMovies, filters);
+  let appUser: Awaited<ReturnType<typeof getCurrentAppUser>> = null;
+  let watchlistMovieIds = new Set<string>();
+
+  try {
+    appUser = await getCurrentAppUser();
+  } catch {
+    appUser = null;
+  }
 
   try {
     const fromDbActor = await getActorBySlug(actorSlug);
@@ -52,6 +61,12 @@ export default async function ActorPage({ params, searchParams }: ActorPageProps
       actor = fromDbActor;
       allMovies = await listActorMovies(actorSlug);
       movies = filterAndSortMovies(allMovies, filters);
+      if (appUser) {
+        watchlistMovieIds = await listWatchlistMovieIdsForUser(
+          appUser.id,
+          allMovies.map((item) => item.id),
+        );
+      }
     }
   } catch {
     // fallback mode
@@ -114,7 +129,12 @@ export default async function ActorPage({ params, searchParams }: ActorPageProps
       </div>
 
       <MovieGridControls decades={decades} genres={genres} />
-      <MovieGrid actor={actor} movies={movies} />
+      <MovieGrid
+        actor={actor}
+        movies={movies}
+        isAuthenticated={Boolean(appUser)}
+        watchlistMovieIds={watchlistMovieIds}
+      />
     </main>
   );
 }

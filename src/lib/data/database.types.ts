@@ -22,6 +22,7 @@ export interface Database {
       guest_votes: GenericTable;
       app_users: GenericTable;
       user_votes: GenericTable;
+      user_watchlist: GenericTable;
       comments: GenericTable;
       comment_reports: GenericTable;
       sync_runs: GenericTable;
