@@ -163,6 +163,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
         initialMyRating={movie.ratings.myRating ?? null}
         isAuthenticated={Boolean(authIdentity)}
         viewerDisplayName={appUser?.displayName ?? appUser?.name ?? authIdentity?.name ?? null}
+        viewerUserId={appUser?.id ?? null}
       />
     </main>
   );

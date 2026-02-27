@@ -13,6 +13,7 @@ interface CommunityPanelProps {
   initialMyRating?: number | null;
   isAuthenticated: boolean;
   viewerDisplayName?: string | null;
+  viewerUserId?: string | null;
   onStatsChange?: (stats: { myRating: number | null; communityAvg: number; communityCount: number }) => void;
 }
 
@@ -22,6 +23,7 @@ export function CommunityPanel({
   initialMyRating = null,
   isAuthenticated,
   viewerDisplayName,
+  viewerUserId,
   onStatsChange,
 }: CommunityPanelProps) {
   const [score, setScore] = useState<number>(initialMyRating ?? 8);
@@ -39,6 +41,12 @@ export function CommunityPanel({
     () => [...comments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [comments],
   );
+  const hasMyComment = useMemo(
+    () => Boolean(viewerUserId && comments.some((comment) => comment.userId === viewerUserId)),
+    [comments, viewerUserId],
+  );
+  const hasSubmittedTake = isAuthenticated && (myRating !== null || hasMyComment);
+  const [isComposerCollapsed, setIsComposerCollapsed] = useState(hasSubmittedTake);
 
   async function submitContribution() {
     setStatusMessage("");
@@ -134,6 +142,10 @@ export function CommunityPanel({
         }
       }
 
+      if (payload.ratingSaved || payload.commentPosted) {
+        setIsComposerCollapsed(true);
+      }
+
       const notices = payload.notices ?? [];
       const errors = payload.errors ?? [];
       if (errors.length && notices.length) {
@@ -211,9 +223,20 @@ export function CommunityPanel({
       className="space-y-5 rounded-3xl border border-[#d9d7f2] bg-white p-5 shadow-[0_12px_26px_rgba(42,39,85,0.05)] sm:p-6"
     >
       <div className="space-y-4 rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-4">
-        <div className="space-y-1">
-          <h3 className="text-base font-semibold text-[#1a1738]">add your take</h3>
-          <p className="text-sm text-[#676489]">Use one captcha and one submit. You can rate, comment, or do both.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-[#1a1738]">add your take</h3>
+            <p className="text-sm text-[#676489]">Rate it, leave a comment, or do both.</p>
+          </div>
+          {isAuthenticated && hasSubmittedTake && (
+            <button
+              type="button"
+              onClick={() => setIsComposerCollapsed((prev) => !prev)}
+              className="rounded-lg border border-[#d9d7f2] px-3 py-1.5 text-xs font-medium text-[#4d4a6b] transition hover:border-[#605bff] hover:text-[#1a1738]"
+            >
+              {isComposerCollapsed ? "update your take" : "minimize"}
+            </button>
+          )}
         </div>
 
         {!isAuthenticated ? (
@@ -225,6 +248,20 @@ export function CommunityPanel({
             >
               log in
             </Link>
+          </div>
+        ) : isComposerCollapsed ? (
+          <div className="rounded-xl border border-[#d9d7f2] bg-white p-4 text-sm text-[#4d4a6b]">
+            <p>
+              you have already submitted your take.
+              {myRating !== null ? ` current rating: ${formatScore(myRating)}.` : ""}
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsComposerCollapsed(false)}
+              className="mt-3 rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022]"
+            >
+              update your take
+            </button>
           </div>
         ) : (
           <>

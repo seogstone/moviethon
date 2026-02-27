@@ -15,6 +15,7 @@ interface MovieEngagementSectionProps {
   initialComments: Comment[];
   isAuthenticated: boolean;
   viewerDisplayName?: string | null;
+  viewerUserId?: string | null;
 }
 
 export function MovieEngagementSection({
@@ -26,6 +27,7 @@ export function MovieEngagementSection({
   initialComments,
   isAuthenticated,
   viewerDisplayName,
+  viewerUserId,
 }: MovieEngagementSectionProps) {
   const [communityAvg, setCommunityAvg] = useState(initialCommunityAvg);
   const [communityCount, setCommunityCount] = useState(initialCommunityCount);
@@ -55,6 +57,7 @@ export function MovieEngagementSection({
         initialMyRating={initialMyRating}
         isAuthenticated={isAuthenticated}
         viewerDisplayName={viewerDisplayName}
+        viewerUserId={viewerUserId}
         onStatsChange={({ myRating: nextMyRating, communityAvg: nextCommunityAvg, communityCount: nextCommunityCount }) => {
           setMyRating(nextMyRating);
           setCommunityAvg(nextCommunityAvg);
