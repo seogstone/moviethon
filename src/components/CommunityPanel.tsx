@@ -34,7 +34,7 @@ export function CommunityPanel({
   const [communityCount, setCommunityCount] = useState(initialCommunityCount);
   const [myRating, setMyRating] = useState<number | null>(initialMyRating);
   const [statusMessage, setStatusMessage] = useState<string>("");
-  const [deleteTokenHint, setDeleteTokenHint] = useState<string>("");
+  const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   const sortedComments = useMemo(
@@ -116,10 +116,12 @@ export function CommunityPanel({
       const postedComment = payload.comment;
       if (postedComment) {
         setComments((prev) => [postedComment, ...prev]);
+        if (payload.deleteToken) {
+          setDeleteTokens((prev) => ({ ...prev, [postedComment.id]: payload.deleteToken as string }));
+        }
       }
 
       setCommentBody("");
-      setDeleteTokenHint(payload.deleteToken ?? "");
       setStatusMessage("Comment posted.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "Comment failed");
@@ -153,7 +155,10 @@ export function CommunityPanel({
   async function deleteOwnComment(commentId: string) {
     setStatusMessage("");
 
-    const token = window.prompt("Paste the delete token that was returned when you posted this comment.");
+    const knownToken = deleteTokens[commentId];
+    const token =
+      knownToken ??
+      window.prompt("Enter the delete token for this comment. Token display is hidden from the public UI.");
     if (!token) {
       return;
     }
@@ -171,6 +176,11 @@ export function CommunityPanel({
     }
 
     setComments((prev) => prev.filter((item) => item.id !== commentId));
+    setDeleteTokens((prev) => {
+      const next = { ...prev };
+      delete next[commentId];
+      return next;
+    });
     setStatusMessage("Comment deleted.");
   }
 
@@ -253,11 +263,6 @@ export function CommunityPanel({
           >
             post comment
           </button>
-          {deleteTokenHint && (
-            <p className="rounded-xl border border-[#f4d7ff] bg-[#faf0ff] p-3 text-xs text-[#6d3687]">
-              delete token for your latest comment: <code className="select-all">{deleteTokenHint}</code>
-            </p>
-          )}
         </div>
       </div>
 
