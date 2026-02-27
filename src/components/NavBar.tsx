@@ -86,24 +86,16 @@ export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
           {authEnabled && (
             <>
               {viewer ? (
-                <>
-                  <Link
-                    href="/me"
-                    className={`rounded-full border border-[#d9d7f2] px-3 py-1.5 text-xs transition ${
-                      pathname === "/me" || pathname.startsWith("/me/")
-                        ? "bg-[#ecebff] text-[#3733b8]"
-                        : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
-                    }`}
-                  >
-                    {viewer.name || "member"}
-                  </Link>
-                  <a
-                    href="/auth/logout"
-                    className="rounded-full px-3 py-1.5 text-sm text-[#5c5a82] transition hover:bg-[#f0efff] hover:text-[#2f2d66]"
-                  >
-                    log out
-                  </a>
-                </>
+                <Link
+                  href="/me"
+                  className={`rounded-full border border-[#d9d7f2] px-3 py-1.5 text-xs transition ${
+                    pathname === "/me" || pathname.startsWith("/me/")
+                      ? "bg-[#ecebff] text-[#3733b8]"
+                      : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
+                  }`}
+                >
+                  {viewer.name || "member"}
+                </Link>
               ) : (
                 <a
                   href="/auth/login"
