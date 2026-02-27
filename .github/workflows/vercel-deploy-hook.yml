@@ -1,0 +1,32 @@
+name: Trigger Vercel Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-deploy-main
+  cancel-in-progress: true
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate deploy hook secret
+        env:
+          HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK_URL" ]; then
+            echo "Missing GitHub secret: VERCEL_DEPLOY_HOOK_URL"
+            exit 1
+          fi
+
+      - name: Trigger deploy hook
+        env:
+          HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          response="$(curl --silent --show-error --fail --retry 3 --retry-delay 5 --request POST "$HOOK_URL")"
+          echo "Deploy hook response:"
+          echo "$response"
