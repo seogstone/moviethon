@@ -45,7 +45,7 @@ h4 {
   text-transform: lowercase;
 }
 
-a {
+:where(a) {
   color: inherit;
   text-decoration: none;
 }
