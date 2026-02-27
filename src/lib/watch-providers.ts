@@ -69,7 +69,8 @@ export async function fetchTmdbWatchProviders(tmdbMovieId: number, region = "US"
     >;
   };
 
-  const regionData = payload.results?.[region];
+  const normalizedRegion = region.trim().toUpperCase();
+  const regionData = payload.results?.[normalizedRegion];
   if (!regionData) {
     return null;
   }

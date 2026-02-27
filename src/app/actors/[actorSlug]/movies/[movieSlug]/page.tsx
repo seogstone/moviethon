@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { MovieEngagementSection } from "@/components/MovieEngagementSection";
@@ -16,14 +17,30 @@ interface MoviePageProps {
   params: Promise<{ actorSlug: string; movieSlug: string }>;
 }
 
+function normalizeCountryCode(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const code = value.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) {
+    return null;
+  }
+
+  return code;
+}
+
 export default async function MoviePage({ params }: MoviePageProps) {
   const { actorSlug, movieSlug } = await params;
+  const requestHeaders = await headers();
+  const visitorRegion = normalizeCountryCode(requestHeaders.get("x-vercel-ip-country")) ?? "US";
 
   let actor = fallbackActorBySlug(actorSlug);
   const fallbackMovie = fallbackActorMovies(actorSlug).find((movie) => movie.slug === movieSlug) ?? null;
   let movie = fallbackMovie;
   let comments: Comment[] = [];
   let watchProviders: Awaited<ReturnType<typeof fetchTmdbWatchProviders>> = null;
+  let watchProviderRegion = visitorRegion;
   let authIdentity: Awaited<ReturnType<typeof getAuthIdentityFromSession>> = null;
   let appUser: Awaited<ReturnType<typeof getAppUserByAuth0Sub>> = null;
 
@@ -45,7 +62,12 @@ export default async function MoviePage({ params }: MoviePageProps) {
       const commentResult = await listMovieComments(fromDb.movie.id, 1, 20);
       comments = commentResult.comments;
       if (fromDb.movie.tmdbId) {
-        watchProviders = await fetchTmdbWatchProviders(fromDb.movie.tmdbId, "US");
+        watchProviders = await fetchTmdbWatchProviders(fromDb.movie.tmdbId, visitorRegion);
+
+        if (!watchProviders && visitorRegion !== "US") {
+          watchProviders = await fetchTmdbWatchProviders(fromDb.movie.tmdbId, "US");
+          watchProviderRegion = "US";
+        }
       }
     }
   } catch {
@@ -96,7 +118,9 @@ export default async function MoviePage({ params }: MoviePageProps) {
 
             {watchProviders && uniqueWatchProviders.length ? (
                 <section className="space-y-2 rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-3">
-                  <h2 className="text-xs font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">where to watch (US)</h2>
+                  <h2 className="text-xs font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">
+                    where to watch ({watchProviderRegion})
+                  </h2>
                   <div className="flex flex-wrap gap-1.5">
                     {uniqueWatchProviders.slice(0, 16).map((provider) => (
                       <a
