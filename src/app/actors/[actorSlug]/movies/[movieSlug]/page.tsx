@@ -77,7 +77,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
           ← back to {actor.name}
         </Link>
 
-        <div className="grid grid-cols-[92px,1fr] items-start gap-4 sm:grid-cols-[108px,1fr] lg:grid-cols-[124px,1fr]">
+        <div className="grid grid-cols-[92px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[108px_minmax(0,1fr)] lg:grid-cols-[124px_minmax(0,1fr)]">
           <div
             className="aspect-[2/3] w-full rounded-2xl border border-[#e4e3f7] bg-no-repeat bg-center"
             style={{

@@ -38,7 +38,7 @@ export default async function MyProfilePage() {
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[1.15fr,1fr]">
+      <section className="grid gap-5 lg:grid-cols-[1.15fr_minmax(0,1fr)]">
         <ProfileForm initialDisplayName={appUser.displayName ?? appUser.name ?? "member"} initialBio={appUser.bio ?? ""} />
 
         <div className="grid grid-cols-2 gap-3">
