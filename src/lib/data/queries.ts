@@ -1,8 +1,11 @@
 import { computeCommunityAverage } from "@/lib/ratings";
+import { buildActorMarketMetrics, rankMarketLeaderboards } from "@/lib/market";
 import type {
   Actor,
+  ActorMarketMetric,
   AppUser,
   Comment,
+  HomepageMarketPayload,
   MyRatingItem,
   MyRatingsPage,
   Movie,
@@ -96,6 +99,136 @@ export async function listAllActors(): Promise<Actor[]> {
   }
 
   return (data ?? []).map((row) => mapActor(row));
+}
+
+interface HomepageMarketStatsOptions {
+  actorScope?: "featured" | "all";
+  windowDays?: number;
+  sparkDays?: number;
+  minVotesForDelta?: number;
+}
+
+export async function getHomepageMarketStats(
+  options: HomepageMarketStatsOptions = {},
+): Promise<HomepageMarketPayload> {
+  const actorScope = options.actorScope ?? "featured";
+  const windowDays = options.windowDays ?? 7;
+  const sparkDays = options.sparkDays ?? 14;
+  const minVotesForDelta = options.minVotesForDelta ?? 5;
+
+  const actors = actorScope === "all" ? await listAllActors() : await listFeaturedActors();
+  if (!actors.length) {
+    return {
+      generatedAt: new Date().toISOString(),
+      windowDays,
+      sparkDays,
+      minVotesForDelta,
+      leaderboards: {
+        movers: [],
+        gainers: [],
+        discussed: [],
+      },
+      actors: [],
+    };
+  }
+
+  const actorIds = actors.map((actor) => actor.id);
+  const supabase = getSupabaseServiceClient();
+  const { data: actorMovieRows, error: actorMovieError } = await supabase
+    .from("actor_movies")
+    .select("actor_id, movie_id")
+    .in("actor_id", actorIds);
+
+  if (actorMovieError) {
+    throw actorMovieError;
+  }
+
+  const movieIds = Array.from(new Set((actorMovieRows ?? []).map((row) => String(row.movie_id))));
+  if (!movieIds.length) {
+    const emptyActors = actors.map(
+      (actor) =>
+        ({
+          actorId: actor.id,
+          actorSlug: actor.slug,
+          actorName: actor.name,
+          ratings7d: 0,
+          ratingsPrev7d: 0,
+          avgRatingAllTime: null,
+          voteCountAllTime: 0,
+          currentAvg7d: null,
+          previousAvg7d: null,
+          gainerDelta7d: null,
+          comments7d: 0,
+          activitySpark14d: Array.from({ length: sparkDays }, () => 0),
+        }) satisfies ActorMarketMetric,
+    );
+
+    return {
+      generatedAt: new Date().toISOString(),
+      windowDays,
+      sparkDays,
+      minVotesForDelta,
+      leaderboards: rankMarketLeaderboards(emptyActors),
+      actors: emptyActors,
+    };
+  }
+
+  const [votesResult, commentsResult] = await Promise.all([
+    supabase.from("user_votes").select("movie_id, score, updated_at").in("movie_id", movieIds),
+    supabase
+      .from("comments")
+      .select("movie_id, created_at")
+      .eq("status", "visible")
+      .in("movie_id", movieIds)
+      .gte("created_at", new Date(Date.now() - sparkDays * 24 * 60 * 60 * 1000).toISOString()),
+  ]);
+
+  if (votesResult.error) {
+    throw votesResult.error;
+  }
+
+  if (commentsResult.error) {
+    throw commentsResult.error;
+  }
+
+  const moviesByActor = new Map<string, string[]>();
+  for (const row of actorMovieRows ?? []) {
+    const actorId = String(row.actor_id);
+    const movieId = String(row.movie_id);
+    const bucket = moviesByActor.get(actorId) ?? [];
+    bucket.push(movieId);
+    moviesByActor.set(actorId, bucket);
+  }
+
+  const metrics = buildActorMarketMetrics({
+    actors: actors.map((actor) => ({
+      actorId: actor.id,
+      actorSlug: actor.slug,
+      actorName: actor.name,
+      movieIds: moviesByActor.get(actor.id) ?? [],
+    })),
+    votes: (votesResult.data ?? []).map((row) => ({
+      movieId: String(row.movie_id),
+      score: Number(row.score),
+      updatedAt: String(row.updated_at),
+    })),
+    comments: (commentsResult.data ?? []).map((row) => ({
+      movieId: String(row.movie_id),
+      createdAt: String(row.created_at),
+    })),
+    windowDays,
+    sparkDays,
+    minVotesForDelta,
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    windowDays,
+    sparkDays,
+    minVotesForDelta,
+    leaderboards: rankMarketLeaderboards(metrics),
+    actors: metrics,
+  };
 }
 
 export async function getActorBySlug(slug: string): Promise<Actor | null> {

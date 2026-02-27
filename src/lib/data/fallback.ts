@@ -1,5 +1,6 @@
 import { actorSeeds, movieSeeds } from "@/lib/data/manual-seed";
-import type { Actor, MovieWithRatings } from "@/lib/types";
+import { rankMarketLeaderboards } from "@/lib/market";
+import type { Actor, ActorMarketMetric, HomepageMarketPayload, MovieWithRatings } from "@/lib/types";
 
 export function fallbackActors(): Actor[] {
   return actorSeeds
@@ -65,4 +66,40 @@ export function fallbackActorMovies(actorSlug: string): MovieWithRatings[] {
       curatedRank: movie.curatedRank,
     }))
     .sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime());
+}
+
+export function fallbackHomepageMarketPayload(
+  actors: Actor[],
+  options?: { windowDays?: number; sparkDays?: number; minVotesForDelta?: number },
+): HomepageMarketPayload {
+  const windowDays = options?.windowDays ?? 7;
+  const sparkDays = options?.sparkDays ?? 14;
+  const minVotesForDelta = options?.minVotesForDelta ?? 5;
+
+  const metrics = actors.map(
+    (actor) =>
+      ({
+        actorId: actor.id,
+        actorSlug: actor.slug,
+        actorName: actor.name,
+        ratings7d: 0,
+        ratingsPrev7d: 0,
+        avgRatingAllTime: null,
+        voteCountAllTime: 0,
+        currentAvg7d: null,
+        previousAvg7d: null,
+        gainerDelta7d: null,
+        comments7d: 0,
+        activitySpark14d: Array.from({ length: sparkDays }, () => 0),
+      }) satisfies ActorMarketMetric,
+  );
+
+  return {
+    generatedAt: new Date().toISOString(),
+    windowDays,
+    sparkDays,
+    minVotesForDelta,
+    leaderboards: rankMarketLeaderboards(metrics),
+    actors: metrics,
+  };
 }

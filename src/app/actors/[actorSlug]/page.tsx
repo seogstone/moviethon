@@ -6,7 +6,9 @@ import { MovieGridControls } from "@/components/MovieGridControls";
 import { filterAndSortMovies } from "@/lib/filter-sort";
 import { fallbackActorBySlug, fallbackActorMovies } from "@/lib/data/fallback";
 import { getActorBySlug, listActorMovies } from "@/lib/data/queries";
+import { formatScore } from "@/lib/format";
 import { parseMovieFilters } from "@/lib/query-params";
+import { computeActorRollupRatings } from "@/lib/ratings";
 import type { MovieWithRatings } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +63,7 @@ export default async function ActorPage({ params, searchParams }: ActorPageProps
 
   const decades = Array.from(new Set(allMovies.map((movie) => movie.decade))).sort();
   const genres = uniqueGenres(allMovies);
+  const rollup = computeActorRollupRatings(allMovies);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
@@ -71,11 +74,43 @@ export default async function ActorPage({ params, searchParams }: ActorPageProps
         >
           ← back to actors
         </Link>
-        <h1 className="text-4xl font-semibold text-[#1a1738]">{actor.name} binge list</h1>
-        <p className="max-w-3xl text-base text-[#4d4a6b]">
-          build your perfect run by jumping across decades, genres, and score signals from critics, fans, and your own
-          picks.
-        </p>
+
+        <div className="grid grid-cols-[108px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-6">
+          <div
+            className="aspect-[2/3] w-full rounded-2xl border border-[#e4e3f7] bg-no-repeat bg-center"
+            style={{
+              backgroundImage: actor.heroImage ? `url(${actor.heroImage})` : "linear-gradient(140deg, #efeeff, #ffffff)",
+              backgroundSize: "contain",
+              backgroundColor: "#f3f2ff",
+            }}
+          />
+
+          <div className="space-y-3">
+            <h1 className="text-4xl font-semibold text-[#1a1738]">{actor.name} binge list</h1>
+            <p className="max-w-3xl text-base text-[#4d4a6b]">
+              {actor.bio ??
+                "build your perfect run by jumping across decades, genres, and score signals from critics, fans, and your own picks."}
+            </p>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-3">
+                <p className="text-xs font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">imdb avg</p>
+                <p className="mt-1 text-2xl font-semibold text-[#1a1738]">{formatScore(rollup.imdbAvg)}</p>
+                <p className="mt-1 text-xs text-[#676489]">{rollup.imdbMovieCount} movies</p>
+              </div>
+              <div className="rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-3">
+                <p className="text-xs font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">your curated avg</p>
+                <p className="mt-1 text-2xl font-semibold text-[#1a1738]">{formatScore(rollup.ownerAvg)}</p>
+                <p className="mt-1 text-xs text-[#676489]">{rollup.ownerMovieCount} movies</p>
+              </div>
+              <div className="rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-3">
+                <p className="text-xs font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">community avg</p>
+                <p className="mt-1 text-2xl font-semibold text-[#1a1738]">{formatScore(rollup.communityAvg)}</p>
+                <p className="mt-1 text-xs text-[#676489]">{rollup.communityVoteCount} votes</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <MovieGridControls decades={decades} genres={genres} />

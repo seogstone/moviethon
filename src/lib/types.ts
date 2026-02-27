@@ -115,3 +115,40 @@ export interface MyRatingsPage {
   pageSize: number;
   total: number;
 }
+
+export interface ActorMarketMetric {
+  actorId: string;
+  actorSlug: string;
+  actorName: string;
+  ratings7d: number;
+  ratingsPrev7d: number;
+  avgRatingAllTime: number | null;
+  voteCountAllTime: number;
+  currentAvg7d: number | null;
+  previousAvg7d: number | null;
+  gainerDelta7d: number | null;
+  comments7d: number;
+  activitySpark14d: number[];
+}
+
+export interface ActorRollupRatings {
+  imdbAvg: number | null;
+  imdbMovieCount: number;
+  ownerAvg: number | null;
+  ownerMovieCount: number;
+  communityAvg: number | null;
+  communityVoteCount: number;
+}
+
+export interface HomepageMarketPayload {
+  generatedAt: string;
+  windowDays: number;
+  sparkDays: number;
+  minVotesForDelta: number;
+  leaderboards: {
+    movers: ActorMarketMetric[];
+    gainers: ActorMarketMetric[];
+    discussed: ActorMarketMetric[];
+  };
+  actors: ActorMarketMetric[];
+}

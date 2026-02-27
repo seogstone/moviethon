@@ -35,3 +35,10 @@ export const userProfileUpdateSchema = z.object({
   displayName: z.string().min(2).max(50),
   bio: z.string().max(280).optional().nullable(),
 });
+
+export const marketActorsQuerySchema = z.object({
+  scope: z.enum(["featured", "all"]).optional(),
+  windowDays: z.coerce.number().int().min(1).max(30).optional(),
+  sparkDays: z.coerce.number().int().min(1).max(30).optional(),
+  minVotesForDelta: z.coerce.number().int().min(1).max(50).optional(),
+});

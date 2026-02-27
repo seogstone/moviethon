@@ -11,6 +11,7 @@
     "test:run": "vitest run",
     "seed": "DOTENV_CONFIG_PATH=.env.local tsx scripts/seed.ts",
     "seed:top-actors": "DOTENV_CONFIG_PATH=.env.local tsx scripts/seed-top-actors.ts",
+    "seed:dummy-community": "DOTENV_CONFIG_PATH=.env.local tsx scripts/seed-dummy-community.ts",
     "sync:actor": "DOTENV_CONFIG_PATH=.env.local tsx scripts/sync-actor.ts"
   },
   "dependencies": {
