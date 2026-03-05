@@ -93,8 +93,9 @@ Tom Hanks first, multi-actor ready.
 - Admin API sync:
   - `POST /api/admin/sync/actor/tom-hanks` with header `x-admin-token`
 - Daily sync cron:
-  - `GET /api/cron/daily-sync` with header `authorization: Bearer <CRON_SECRET>` (Vercel Cron)
-  - `POST /api/cron/daily-sync` with header `x-cron-secret` (manual trigger)
+  - `GET /api/cron/daily-sync` with header `authorization: Bearer <CRON_SECRET>` (Vercel Cron, runs index pipeline only)
+  - `POST /api/cron/daily-sync` with header `x-cron-secret` (manual trigger, index pipeline only)
+  - `POST /api/cron/daily-sync?mode=full-sync&actorLimit=2` (manual featured-actor metadata sync + index; use small batches to avoid timeouts)
 
 ## Community / Moderation Flow
 

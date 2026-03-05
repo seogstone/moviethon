@@ -13,17 +13,29 @@ async function runDailySync(request: NextRequest) {
       return jsonError("Unauthorized", 401);
     }
 
-    const actors = await listFeaturedActors();
-    const results = [];
+    const mode = request.nextUrl.searchParams.get("mode") ?? "index-only";
+    const actorLimitRaw = Number(request.nextUrl.searchParams.get("actorLimit") ?? "0");
+    const actorLimit = Number.isFinite(actorLimitRaw) && actorLimitRaw > 0 ? Math.floor(actorLimitRaw) : null;
 
-    for (const actor of actors) {
-      const result = await syncActorMovies(actor.slug);
-      results.push(result);
+    const results = [];
+    if (mode === "full-sync") {
+      const actors = await listFeaturedActors();
+      const selectedActors = actorLimit ? actors.slice(0, actorLimit) : actors;
+      for (const actor of selectedActors) {
+        const result = await syncActorMovies(actor.slug);
+        results.push(result);
+      }
     }
 
     const index = await runDailyIndexPipeline();
 
-    return NextResponse.json({ ok: true, results, index });
+    return NextResponse.json({
+      ok: true,
+      mode,
+      syncedActors: results.length,
+      results,
+      index,
+    });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Daily sync failed", 500);
   }
