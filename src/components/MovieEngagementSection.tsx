@@ -36,18 +36,18 @@ export function MovieEngagementSection({
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-3">
-          <div className="text-xs font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">IMDb</div>
-          <div className="mt-1 text-2xl font-semibold text-[#1a1738]">{formatScore(imdbScore)}</div>
+        <div className="rounded-2xl border border-[var(--border)] bg-[#0f1318] p-3">
+          <div className="text-xs font-medium uppercase tracking-[0.15em] text-[var(--muted)]">IMDb</div>
+          <div className="mt-1 text-2xl font-semibold text-[var(--foreground)]">{formatScore(imdbScore)}</div>
         </div>
-        <div className="rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-3">
-          <div className="text-xs font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">your rating</div>
-          <div className="mt-1 text-2xl font-semibold text-[#1a1738]">{formatScore(myRating)}</div>
+        <div className="rounded-2xl border border-[var(--border)] bg-[#0f1318] p-3">
+          <div className="text-xs font-medium uppercase tracking-[0.15em] text-[var(--muted)]">your rating</div>
+          <div className="mt-1 text-2xl font-semibold text-[var(--foreground)]">{formatScore(myRating)}</div>
         </div>
-        <div className="rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-3">
-          <div className="text-xs font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">community</div>
-          <div className="mt-1 text-2xl font-semibold text-[#1a1738]">{formatScore(communityAvg)}</div>
-          <div className="mt-1 text-xs text-[#8d8ab0]">{communityCount} vote{communityCount === 1 ? "" : "s"}</div>
+        <div className="rounded-2xl border border-[var(--border)] bg-[#0f1318] p-3">
+          <div className="text-xs font-medium uppercase tracking-[0.15em] text-[var(--muted)]">community</div>
+          <div className="mt-1 text-2xl font-semibold text-[var(--foreground)]">{formatScore(communityAvg)}</div>
+          <div className="mt-1 text-xs text-[var(--muted)]">{communityCount} vote{communityCount === 1 ? "" : "s"}</div>
         </div>
       </div>
 

@@ -4,11 +4,19 @@ interface SparklineProps {
   points: number[];
   width?: number;
   height?: number;
+  stroke?: string;
+  className?: string;
 }
 
-export function Sparkline({ points, width = 84, height = 24 }: SparklineProps) {
+export function Sparkline({
+  points,
+  width = 84,
+  height = 24,
+  stroke = "var(--accent-highlight)",
+  className = "h-6 w-20",
+}: SparklineProps) {
   if (!points.length) {
-    return <div className="h-6 w-20 rounded bg-[#f1f0ff]" />;
+    return <div className={className} style={{ borderRadius: 4, background: "#151b22" }} />;
   }
 
   const max = Math.max(...points);
@@ -24,13 +32,10 @@ export function Sparkline({ points, width = 84, height = 24 }: SparklineProps) {
     })
     .join(" ");
 
-  const isUpward = points[points.length - 1] >= points[0];
-  const stroke = isUpward ? "#2f9e44" : "#d9480f";
-
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-6 w-20"
+      className={className}
       role="img"
       aria-label="activity trend"
       preserveAspectRatio="none"

@@ -1,5 +1,8 @@
 import "dotenv/config";
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { readEnv } from "../src/lib/env";
 import {
   replaceActorMovieCuration,
@@ -62,7 +65,14 @@ interface TmdbPersonDetail {
   profile_path: string | null;
 }
 
-const TARGET_ACTORS: TargetActor[] = [
+interface SelectedMovie {
+  detail: TmdbMovieDetail;
+  imdbRating: number | null;
+  runtimeMinutes: number | null;
+  roleOrder: number;
+}
+
+const BASELINE_ACTORS: TargetActor[] = [
   { name: "Tom Hanks", slug: "tom-hanks" },
   { name: "Adam Sandler", slug: "adam-sandler" },
   { name: "Robert De Niro", slug: "robert-de-niro" },
@@ -71,20 +81,45 @@ const TARGET_ACTORS: TargetActor[] = [
   { name: "Jack Nicholson", slug: "jack-nicholson" },
 ];
 
+const DEFAULT_TOP_ACTORS_FILE = "top-actors.md";
+const MIN_MOVIES_PER_ACTOR = 8;
+const TARGET_MOVIES_PER_ACTOR = 25;
+
+const tmdbMovieDetailCache = new Map<number, Promise<TmdbMovieDetail>>();
+const omdbCache = new Map<string, Promise<Awaited<ReturnType<typeof fetchOmdbByImdbId>>>>();
+
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function normalizeName(value: string): string {
-  return value.trim().toLowerCase();
+  return normalizeWhitespace(value).toLowerCase();
+}
+
+function normalizeComparable(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’'`]/g, "")
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function slugify(value: string): string {
   return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’'`]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
+    .toLowerCase()
     .slice(0, 80);
 }
 
-function toPosterUrl(path: string | null): string | null {
-  return path ? `https://image.tmdb.org/t/p/w780${path}` : null;
+function toPosterUrl(pathValue: string | null): string | null {
+  return pathValue ? `https://image.tmdb.org/t/p/w780${pathValue}` : null;
 }
 
 function trimBio(bio: string, fallback: string): string {
@@ -97,9 +132,65 @@ function trimBio(bio: string, fallback: string): string {
   return sentence && sentence.length >= 20 ? sentence : cleaned.slice(0, 260);
 }
 
-async function tmdbFetch<T>(path: string, searchParams: Record<string, string> = {}): Promise<T> {
+function parseTopActors(filePath: string): TargetActor[] {
+  const fullPath = path.resolve(process.cwd(), filePath);
+  const raw = readFileSync(fullPath, "utf-8");
+
+  const names: string[] = [];
+  for (const line of raw.split(/\r?\n/)) {
+    const match = line.match(/^\s*\d+\.\s+(.+?)\s*$/);
+    if (!match) {
+      continue;
+    }
+
+    const name = normalizeWhitespace(match[1]);
+    if (!name) {
+      continue;
+    }
+
+    names.push(name);
+  }
+
+  return names.map((name) => ({
+    name,
+    slug: slugify(name),
+  }));
+}
+
+function buildTargetActors(filePath: string): TargetActor[] {
+  const combined = [...BASELINE_ACTORS, ...parseTopActors(filePath)];
+  const seen = new Set<string>();
+  const results: TargetActor[] = [];
+
+  for (const actor of combined) {
+    const key = normalizeComparable(actor.name);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    results.push({
+      name: normalizeWhitespace(actor.name),
+      slug: actor.slug || slugify(actor.name),
+    });
+  }
+
+  return results;
+}
+
+function parseArgValue(flag: string): string | null {
+  const index = process.argv.indexOf(flag);
+  if (index === -1) {
+    return null;
+  }
+
+  const value = process.argv[index + 1];
+  return value && !value.startsWith("--") ? value : null;
+}
+
+async function tmdbFetch<T>(pathValue: string, searchParams: Record<string, string> = {}): Promise<T> {
   const apiKey = readEnv("TMDB_API_KEY");
-  const url = new URL(`https://api.themoviedb.org/3${path}`);
+  const url = new URL(`https://api.themoviedb.org/3${pathValue}`);
   url.searchParams.set("api_key", apiKey);
 
   for (const [key, value] of Object.entries(searchParams)) {
@@ -108,7 +199,7 @@ async function tmdbFetch<T>(path: string, searchParams: Record<string, string> =
 
   const response = await fetch(url.toString());
   if (!response.ok) {
-    throw new Error(`TMDb request failed (${response.status}) for ${path}`);
+    throw new Error(`TMDb request failed (${response.status}) for ${pathValue}`);
   }
 
   return (await response.json()) as T;
@@ -143,11 +234,12 @@ function creditScore(credit: TmdbCredit): number {
   return quality * 2 + Math.log10(votes + 1) + popularity / 60;
 }
 
-function finalMovieScore(detail: TmdbMovieDetail, imdbRating: number | null): number {
+function finalMovieScore(detail: TmdbMovieDetail, imdbRating: number | null, roleOrder: number): number {
   const sourceRating = imdbRating ?? detail.vote_average ?? 0;
   const votes = detail.vote_count ?? 0;
   const popularity = detail.popularity ?? 0;
-  return sourceRating * 2 + Math.log10(votes + 1) + popularity / 80;
+  const roleBoost = roleOrder <= 5 ? 1.08 : roleOrder <= 10 ? 1.03 : roleOrder <= 20 ? 1 : 0.94;
+  return (sourceRating * 2 + Math.log10(votes + 1) + popularity / 80) * roleBoost;
 }
 
 function hasDisallowedGenre(detail: TmdbMovieDetail): boolean {
@@ -169,43 +261,116 @@ function hasSelfOrArchiveRole(character?: string): boolean {
   );
 }
 
-function movieHasQualifiedActorRole(detail: TmdbMovieDetail, personId: number, maxOrder: number): boolean {
+function actorRoleOrder(detail: TmdbMovieDetail, personId: number): number | null {
   const cast = detail.credits?.cast ?? [];
   const actorCast = cast.find((member) => member.id === personId);
   if (!actorCast) {
-    return false;
-  }
-
-  const order = actorCast.order ?? 999;
-  if (order > maxOrder) {
-    return false;
+    return null;
   }
 
   if (hasSelfOrArchiveRole(actorCast.character)) {
-    return false;
+    return null;
   }
 
-  return true;
+  return actorCast.order ?? null;
 }
 
-async function mapWithConcurrency<T, U>(
-  items: T[],
-  concurrency: number,
-  mapper: (item: T, index: number) => Promise<U>,
-): Promise<U[]> {
-  const results: U[] = new Array(items.length);
-  let pointer = 0;
+async function getMovieDetail(tmdbId: number): Promise<TmdbMovieDetail> {
+  const cached = tmdbMovieDetailCache.get(tmdbId);
+  if (cached) {
+    return cached;
+  }
 
-  async function worker() {
-    while (pointer < items.length) {
-      const index = pointer;
-      pointer += 1;
-      results[index] = await mapper(items[index], index);
+  const promise = tmdbFetch<TmdbMovieDetail>(`/movie/${tmdbId}`, {
+    append_to_response: "credits",
+  });
+
+  tmdbMovieDetailCache.set(tmdbId, promise);
+  return promise;
+}
+
+async function getOmdb(imdbId: string): Promise<Awaited<ReturnType<typeof fetchOmdbByImdbId>>> {
+  const cached = omdbCache.get(imdbId);
+  if (cached) {
+    return cached;
+  }
+
+  const promise = fetchOmdbByImdbId(imdbId).catch(() => null);
+  omdbCache.set(imdbId, promise);
+  return promise;
+}
+
+function sanitizeMovieTitle(title: string): string {
+  return normalizeWhitespace(title).replace(/\s+/g, " ");
+}
+
+async function buildSelectedMovies(target: TargetActor, personId: number): Promise<SelectedMovie[]> {
+  const creditsPayload = await tmdbFetch<{ cast: TmdbCredit[] }>(`/person/${personId}/movie_credits`);
+
+  const candidateCredits = (creditsPayload.cast ?? [])
+    .filter((credit) => credit.release_date && credit.title)
+    .filter((credit) => (credit.vote_count ?? 0) >= 15)
+    .filter((credit) => !(credit.genre_ids ?? []).includes(99))
+    .filter((credit) => !hasSelfOrArchiveRole(credit.character))
+    .filter((credit) => (credit.order ?? 999) <= 35)
+    .sort((a, b) => creditScore(b) - creditScore(a))
+    .slice(0, 160);
+
+  const selected: SelectedMovie[] = [];
+
+  for (const credit of candidateCredits) {
+    let detail: TmdbMovieDetail;
+    try {
+      detail = await getMovieDetail(credit.id);
+    } catch {
+      continue;
+    }
+
+    if (!detail.release_date || !detail.title || hasDisallowedGenre(detail)) {
+      continue;
+    }
+
+    const roleOrder = actorRoleOrder(detail, personId);
+    if (roleOrder === null || roleOrder > 35) {
+      continue;
+    }
+
+    const omdb = detail.imdb_id ? await getOmdb(detail.imdb_id) : null;
+
+    selected.push({
+      detail,
+      imdbRating: omdb?.imdbRating ?? null,
+      runtimeMinutes: omdb?.runtimeMinutes ?? detail.runtime ?? null,
+      roleOrder,
+    });
+  }
+
+  const dedupedByMovie = new Map<number, SelectedMovie>();
+  for (const movie of selected) {
+    if (!dedupedByMovie.has(movie.detail.id)) {
+      dedupedByMovie.set(movie.detail.id, movie);
     }
   }
 
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
-  return results;
+  const ranked = Array.from(dedupedByMovie.values()).sort((a, b) => {
+    const scoreDiff =
+      finalMovieScore(b.detail, b.imdbRating, b.roleOrder) - finalMovieScore(a.detail, a.imdbRating, a.roleOrder);
+    if (scoreDiff !== 0) {
+      return scoreDiff;
+    }
+
+    return new Date(b.detail.release_date).getTime() - new Date(a.detail.release_date).getTime();
+  });
+
+  const chosen = ranked.slice(0, TARGET_MOVIES_PER_ACTOR);
+
+  if (chosen.length < MIN_MOVIES_PER_ACTOR) {
+    throw new Error(
+      `Only found ${chosen.length} qualifying movies for ${target.name}; expected at least ${MIN_MOVIES_PER_ACTOR}`,
+    );
+  }
+
+  return chosen;
 }
 
 async function runForActor(target: TargetActor) {
@@ -221,71 +386,11 @@ async function runForActor(target: TargetActor) {
   }
 
   const personDetail = await tmdbFetch<TmdbPersonDetail>(`/person/${person.id}`);
-  const creditsPayload = await tmdbFetch<{ cast: TmdbCredit[] }>(`/person/${person.id}/movie_credits`);
+  const selectedMovies = await buildSelectedMovies(target, person.id);
 
-  const filteredCredits = (creditsPayload.cast ?? [])
-    .filter((credit) => credit.release_date && credit.title)
-    .filter((credit) => (credit.vote_count ?? 0) >= 80)
-    .filter((credit) => !(credit.genre_ids ?? []).includes(99))
-    .filter((credit) => !hasSelfOrArchiveRole(credit.character))
-    .filter((credit) => (credit.order ?? 999) <= 20)
-    .sort((a, b) => creditScore(b) - creditScore(a))
-    .slice(0, 120);
-
-  const detailedCandidates = await mapWithConcurrency(filteredCredits, 5, async (credit) => {
-    const detail = await tmdbFetch<TmdbMovieDetail>(`/movie/${credit.id}`, {
-      append_to_response: "credits",
-    });
-
-    if (!detail.release_date || !detail.title) {
-      return null;
-    }
-
-    if (hasDisallowedGenre(detail)) {
-      return null;
-    }
-
-    if (!movieHasQualifiedActorRole(detail, person.id, 20)) {
-      return null;
-    }
-
-    const omdb = detail.imdb_id ? await fetchOmdbByImdbId(detail.imdb_id) : null;
-    return {
-      detail,
-      imdbRating: omdb?.imdbRating ?? null,
-      runtimeMinutes: omdb?.runtimeMinutes ?? detail.runtime ?? null,
-    };
-  });
-
-  const qualified = detailedCandidates
-    .filter((item): item is NonNullable<typeof item> => Boolean(item))
-    .sort((a, b) => {
-      const scoreDiff = finalMovieScore(b.detail, b.imdbRating) - finalMovieScore(a.detail, a.imdbRating);
-      if (scoreDiff !== 0) {
-        return scoreDiff;
-      }
-
-      return new Date(b.detail.release_date).getTime() - new Date(a.detail.release_date).getTime();
-    });
-
-  const strictRoleCandidates = qualified.filter((item) => movieHasQualifiedActorRole(item.detail, person.id, 8));
-  const mediumRoleCandidates = qualified.filter((item) => movieHasQualifiedActorRole(item.detail, person.id, 12));
-  const broadRoleCandidates = qualified.filter((item) => movieHasQualifiedActorRole(item.detail, person.id, 20));
-
-  const chosenPool =
-    strictRoleCandidates.length >= 25
-      ? strictRoleCandidates
-      : mediumRoleCandidates.length >= 25
-        ? mediumRoleCandidates
-        : broadRoleCandidates;
-
-  const selected = chosenPool.slice(0, 25);
-
-  if (selected.length < 25) {
-    throw new Error(`Only found ${selected.length} qualifying movies for ${target.name}`);
-  }
-
-  const heroImage = toPosterUrl(personDetail.profile_path) ?? "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80";
+  const heroImage =
+    toPosterUrl(personDetail.profile_path) ??
+    "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80";
   const actorBio = trimBio(personDetail.biography, `${target.name} binge list.`);
 
   const actor = await upsertActor({
@@ -298,13 +403,14 @@ async function runForActor(target: TargetActor) {
 
   const rankedMovieIds: string[] = [];
 
-  for (const [index, movie] of selected.entries()) {
+  for (const [index, movie] of selectedMovies.entries()) {
     const detail = movie.detail;
     const year = detail.release_date.slice(0, 4);
-    const movieSlug = `${slugify(detail.title)}-${year}-${detail.id}`;
+    const movieSlug = `${slugify(sanitizeMovieTitle(detail.title))}-${year}-${detail.id}`;
+
     const movieId = await upsertMovie({
       slug: movieSlug,
-      title: detail.title,
+      title: sanitizeMovieTitle(detail.title),
       releaseDate: detail.release_date,
       genres: detail.genres.map((genre) => genre.name),
       imdbId: detail.imdb_id,
@@ -334,16 +440,60 @@ async function runForActor(target: TargetActor) {
 }
 
 async function run() {
-  const results = [];
+  const actorsPath = parseArgValue("--actors-file") ?? DEFAULT_TOP_ACTORS_FILE;
+  const limitArg = parseArgValue("--limit");
+  const limit = limitArg ? Number(limitArg) : null;
+  const onlyActor = parseArgValue("--only");
 
-  for (const target of TARGET_ACTORS) {
-    const result = await runForActor(target);
-    results.push(result);
-    console.log(`Seeded ${target.name}: ${result.moviesAdded} movies`);
+  const targetActors = buildTargetActors(actorsPath)
+    .filter((actor) => (onlyActor ? normalizeComparable(actor.name) === normalizeComparable(onlyActor) : true))
+    .slice(0, limit && Number.isFinite(limit) && limit > 0 ? limit : undefined);
+
+  if (!targetActors.length) {
+    throw new Error("No actors resolved for seeding. Check top-actors.md or flags.");
+  }
+
+  console.log(
+    JSON.stringify(
+      {
+        actorsFile: actorsPath,
+        actorCount: targetActors.length,
+        targetMoviesPerActor: TARGET_MOVIES_PER_ACTOR,
+        minMoviesPerActor: MIN_MOVIES_PER_ACTOR,
+      },
+      null,
+      2,
+    ),
+  );
+
+  const results: Array<{ actor: string; personId: number; moviesAdded: number }> = [];
+  const failures: Array<{ actor: string; error: string }> = [];
+
+  for (const target of targetActors) {
+    try {
+      const result = await runForActor(target);
+      results.push(result);
+      console.log(`Seeded ${target.name}: ${result.moviesAdded} movies`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      failures.push({ actor: target.name, error: message });
+      console.warn(`Skipped ${target.name}: ${message}`);
+    }
   }
 
   console.log("Done:");
-  console.log(JSON.stringify(results, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        successes: results.length,
+        failureCount: failures.length,
+        results,
+        failures,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 run().catch((error) => {

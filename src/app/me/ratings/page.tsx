@@ -33,8 +33,8 @@ export default async function MyRatingsPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {ratings.items.map((item) => {
           const href = item.actorSlug
-            ? `/actors/${item.actorSlug}/movies/${item.movieSlug}`
-            : `/api/movies/${item.movieId}`;
+            ? `/movies/${item.movieSlug}?actor=${item.actorSlug}`
+            : `/movies/${item.movieSlug}`;
 
           return (
             <Link

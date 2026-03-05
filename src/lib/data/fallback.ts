@@ -68,6 +68,17 @@ export function fallbackActorMovies(actorSlug: string): MovieWithRatings[] {
     .sort((a, b) => new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime());
 }
 
+export function fallbackMovieBySlug(movieSlug: string): { actor: Actor; movie: MovieWithRatings } | null {
+  for (const actor of fallbackActors()) {
+    const movie = fallbackActorMovies(actor.slug).find((item) => item.slug === movieSlug);
+    if (movie) {
+      return { actor, movie };
+    }
+  }
+
+  return null;
+}
+
 export function fallbackHomepageMarketPayload(
   actors: Actor[],
   options?: { windowDays?: number; sparkDays?: number; minVotesForDelta?: number },

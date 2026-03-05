@@ -42,3 +42,34 @@ export const marketActorsQuerySchema = z.object({
   sparkDays: z.coerce.number().int().min(1).max(30).optional(),
   minVotesForDelta: z.coerce.number().int().min(1).max(50).optional(),
 });
+
+export const rankingQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+  sortBy: z.enum(["index", "delta_7d", "volatility"]).optional(),
+  sortDir: z.enum(["asc", "desc"]).optional(),
+});
+
+export const moverRankingQuerySchema = z.object({
+  type: z.enum(["gainers", "decliners"]).default("gainers"),
+  window: z.enum(["24h", "7d"]).default("7d"),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export const indexHistoryQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(120).optional(),
+});
+
+export const globalHistoryQuerySchema = z.object({
+  days: z.union([z.literal("all"), z.coerce.number().int().min(1).max(3650)]).optional(),
+});
+
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(60).optional(),
+});
+
+export const optionalLimitQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});

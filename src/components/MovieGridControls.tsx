@@ -39,13 +39,13 @@ export function MovieGridControls({ decades, genres }: MovieGridControlsProps) {
   }
 
   return (
-    <div className="grid gap-3 rounded-3xl border border-[#d9d7f2] bg-white p-4 shadow-[0_8px_18px_rgba(42,39,85,0.04)] md:grid-cols-4">
+    <div className="grid gap-3 panel-shell rounded-2xl p-4 md:grid-cols-4">
       <label className="space-y-1.5">
-        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">decade</span>
+        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">decade</span>
         <select
           value={decade}
           onChange={(event) => updateParam("decade", event.target.value)}
-          className="w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-sm text-[#1a1738] outline-none transition focus:border-[#605bff]"
+          className="w-full rounded-xl border border-[var(--border)] bg-[#0f1318] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
         >
           <option value="">all</option>
           {decades.map((item) => (
@@ -57,11 +57,11 @@ export function MovieGridControls({ decades, genres }: MovieGridControlsProps) {
       </label>
 
       <label className="space-y-1.5">
-        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">genre</span>
+        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">genre</span>
         <select
           value={genre}
           onChange={(event) => updateParam("genre", event.target.value)}
-          className="w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-sm text-[#1a1738] outline-none transition focus:border-[#605bff]"
+          className="w-full rounded-xl border border-[var(--border)] bg-[#0f1318] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
         >
           <option value="">all</option>
           {genres.map((item) => (
@@ -73,11 +73,11 @@ export function MovieGridControls({ decades, genres }: MovieGridControlsProps) {
       </label>
 
       <label className="space-y-1.5">
-        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">sort by</span>
+        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">sort by</span>
         <select
           value={sortBy}
           onChange={(event) => updateParam("sortBy", event.target.value)}
-          className="w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-sm text-[#1a1738] outline-none transition focus:border-[#605bff]"
+          className="w-full rounded-xl border border-[var(--border)] bg-[#0f1318] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
         >
           {sortOptions.map((item) => (
             <option key={item.value} value={item.value}>
@@ -88,11 +88,11 @@ export function MovieGridControls({ decades, genres }: MovieGridControlsProps) {
       </label>
 
       <label className="space-y-1.5">
-        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">direction</span>
+        <span className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">direction</span>
         <select
           value={sortDir}
           onChange={(event) => updateParam("sortDir", event.target.value)}
-          className="w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-sm text-[#1a1738] outline-none transition focus:border-[#605bff]"
+          className="w-full rounded-xl border border-[var(--border)] bg-[#0f1318] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
         >
           <option value="asc">ascending</option>
           <option value="desc">descending</option>

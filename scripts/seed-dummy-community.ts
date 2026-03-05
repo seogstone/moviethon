@@ -6,11 +6,15 @@ import { randomToken, sha256 } from "../src/lib/crypto";
 import { getSupabaseServiceClient } from "../src/lib/data/supabase";
 
 const USER_COUNT = 50;
-const MIN_RATINGS_PER_USER = 6;
-const MAX_RATINGS_PER_USER = 14;
-const COMMENT_PROBABILITY = 0.38;
+const MIN_RATINGS_PER_USER = 18;
+const MAX_RATINGS_PER_USER = 40;
+const MIN_WATCHLIST_PER_USER = 12;
+const MAX_WATCHLIST_PER_USER = 30;
+const COMMENT_PROBABILITY = 0.34;
+const FULL_MODE_COMMENT_PROBABILITY = 0.2;
 const ACTIVITY_DAYS_BACK = 30;
 const DUMMY_USER_PREFIX = "dummy|seed-user-";
+const WRITE_BATCH_SIZE = 750;
 
 const firstNames = [
   "Alex",
@@ -76,7 +80,21 @@ function sampleUnique<T>(items: T[], count: number): T[] {
   return clone.slice(0, Math.min(count, clone.length));
 }
 
+function chunkArray<T>(items: T[], size: number): T[][] {
+  if (size <= 0) {
+    return [items];
+  }
+
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
 async function run() {
+  const fullMode = !process.argv.includes("--sampled");
   const supabase = getSupabaseServiceClient();
 
   const { data: existingDummyUsers, error: existingUsersError } = await supabase
@@ -90,9 +108,10 @@ async function run() {
 
   const existingIds = (existingDummyUsers ?? []).map((row) => String(row.id));
   if (existingIds.length) {
-    const [{ error: deleteVotesError }, { error: deleteCommentsError }] = await Promise.all([
+    const [{ error: deleteVotesError }, { error: deleteCommentsError }, { error: deleteWatchlistError }] = await Promise.all([
       supabase.from("user_votes").delete().in("user_id", existingIds),
       supabase.from("comments").delete().in("user_id", existingIds),
+      supabase.from("user_watchlist").delete().in("user_id", existingIds),
     ]);
 
     if (deleteVotesError) {
@@ -101,6 +120,10 @@ async function run() {
 
     if (deleteCommentsError) {
       throw deleteCommentsError;
+    }
+
+    if (deleteWatchlistError) {
+      throw deleteWatchlistError;
     }
   }
 
@@ -157,6 +180,13 @@ async function run() {
     updated_at: string;
   }> = [];
 
+  const watchlistRows: Array<{
+    movie_id: string;
+    user_id: string;
+    created_at: string;
+    updated_at: string;
+  }> = [];
+
   const commentRows: Array<{
     id: string;
     movie_id: string;
@@ -171,7 +201,10 @@ async function run() {
 
   for (const user of users) {
     const ratingCount = randInt(MIN_RATINGS_PER_USER, MAX_RATINGS_PER_USER);
-    const ratedMovies = sampleUnique(movies, ratingCount);
+    const ratedMovies = fullMode ? movies : sampleUnique(movies, ratingCount);
+    const watchlistCount = randInt(MIN_WATCHLIST_PER_USER, MAX_WATCHLIST_PER_USER);
+    const watchlistMovies = fullMode ? movies : sampleUnique(movies, watchlistCount);
+    const activeCommentProbability = fullMode ? FULL_MODE_COMMENT_PROBABILITY : COMMENT_PROBABILITY;
 
     for (const movie of ratedMovies) {
       const timestamp = randomDateWithinDays(ACTIVITY_DAYS_BACK);
@@ -183,7 +216,7 @@ async function run() {
         updated_at: timestamp,
       });
 
-      if (Math.random() <= COMMENT_PROBABILITY) {
+      if (Math.random() <= activeCommentProbability) {
         const commentTemplate = commentTemplates[randInt(0, commentTemplates.length - 1)];
         const commentTimestamp = randomDateWithinDays(ACTIVITY_DAYS_BACK);
         commentRows.push({
@@ -199,26 +232,51 @@ async function run() {
         });
       }
     }
+
+    for (const movie of watchlistMovies) {
+      const timestamp = randomDateWithinDays(ACTIVITY_DAYS_BACK);
+      watchlistRows.push({
+        movie_id: movie.id,
+        user_id: user.id,
+        created_at: timestamp,
+        updated_at: timestamp,
+      });
+    }
   }
 
   if (voteRows.length) {
-    const { error: votesError } = await supabase
-      .from("user_votes")
-      .upsert(voteRows, { onConflict: "movie_id,user_id" });
-    if (votesError) {
-      throw votesError;
+    for (const chunk of chunkArray(voteRows, WRITE_BATCH_SIZE)) {
+      const { error: votesError } = await supabase
+        .from("user_votes")
+        .upsert(chunk, { onConflict: "movie_id,user_id" });
+      if (votesError) {
+        throw votesError;
+      }
     }
   }
 
   if (commentRows.length) {
-    const { error: commentsError } = await supabase.from("comments").insert(commentRows);
-    if (commentsError) {
-      throw commentsError;
+    for (const chunk of chunkArray(commentRows, WRITE_BATCH_SIZE)) {
+      const { error: commentsError } = await supabase.from("comments").insert(chunk);
+      if (commentsError) {
+        throw commentsError;
+      }
+    }
+  }
+
+  if (watchlistRows.length) {
+    for (const chunk of chunkArray(watchlistRows, WRITE_BATCH_SIZE)) {
+      const { error: watchlistError } = await supabase
+        .from("user_watchlist")
+        .upsert(chunk, { onConflict: "user_id,movie_id" });
+      if (watchlistError) {
+        throw watchlistError;
+      }
     }
   }
 
   console.log(
-    `Dummy community seed complete. Users: ${users.length}, Ratings: ${voteRows.length}, Comments: ${commentRows.length}`,
+    `Dummy community seed complete. Mode: ${fullMode ? "full" : "sampled"}, Users: ${users.length}, Ratings: ${voteRows.length}, Comments: ${commentRows.length}, WatchlistAdds: ${watchlistRows.length}`,
   );
 }
 

@@ -21,7 +21,8 @@ interface NavBarProps {
 
 export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [actorsOpen, setActorsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const actorLinks = useMemo(
     () => [...actors].sort((a, b) => a.name.localeCompare(b.name)),
@@ -29,10 +30,10 @@ export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#e0dff5] bg-[rgba(248,248,254,0.85)] backdrop-blur-xl">
-      <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-[#2a2755]">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#7b77ff]" />
+    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[#0f1217]/95 backdrop-blur">
+      <nav className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
           moviethon
         </Link>
 
@@ -41,27 +42,38 @@ export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
             href="/"
             className={`rounded-full px-3 py-1.5 text-sm transition ${
               pathname === "/"
-                ? "bg-[#ecebff] text-[#3733b8]"
-                : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
+                ? "bg-[var(--accent)] text-white"
+                : "text-[var(--muted)] hover:bg-[#171d25] hover:text-[var(--foreground)]"
             }`}
           >
             home
           </Link>
 
+          <Link
+            href="/rankings/films"
+            className={`rounded-full px-3 py-1.5 text-sm transition ${
+              pathname.startsWith("/rankings")
+                ? "bg-[var(--accent)] text-white"
+                : "text-[var(--muted)] hover:bg-[#171d25] hover:text-[var(--foreground)]"
+            }`}
+          >
+            rankings
+          </Link>
+
           <div className="relative">
             <button
               type="button"
-              onClick={() => setOpen((value) => !value)}
-              onBlur={() => setTimeout(() => setOpen(false), 120)}
-              className="rounded-full px-3 py-1.5 text-sm text-[#5c5a82] transition hover:bg-[#f0efff] hover:text-[#2f2d66]"
-              aria-expanded={open}
+              onClick={() => setActorsOpen((value) => !value)}
+              onBlur={() => setTimeout(() => setActorsOpen(false), 120)}
+              className="rounded-full px-3 py-1.5 text-sm text-[var(--muted)] transition hover:bg-[#171d25] hover:text-[var(--foreground)]"
+              aria-expanded={actorsOpen}
               aria-haspopup="menu"
             >
               actors ▾
             </button>
 
-            {open && (
-              <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-[#dddaf6] bg-white p-2 shadow-[0_16px_36px_rgba(42,39,85,0.14)]">
+            {actorsOpen && (
+              <div className="absolute right-0 mt-2 w-60 rounded-xl border border-[var(--border)] bg-[#0f1318] p-2 shadow-[0_20px_32px_rgba(0,0,0,0.45)]">
                 {actorLinks.map((actor) => {
                   const href = `/actors/${actor.slug}`;
                   const isActive = pathname === href || pathname.startsWith(`${href}/`);
@@ -69,10 +81,10 @@ export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
                     <Link
                       key={actor.slug}
                       href={href}
-                      className={`block rounded-xl px-3 py-2 text-sm transition ${
+                      className={`block rounded-lg px-3 py-2 text-sm transition ${
                         isActive
-                          ? "bg-[#ecebff] text-[#3733b8]"
-                          : "text-[#4a4768] hover:bg-[#f4f3ff] hover:text-[#2f2d66]"
+                          ? "bg-[var(--accent)] text-white"
+                          : "text-[var(--foreground)] hover:bg-[#171d25]"
                       }`}
                     >
                       {actor.name}
@@ -86,20 +98,40 @@ export function NavBar({ actors, viewer, authEnabled }: NavBarProps) {
           {authEnabled && (
             <>
               {viewer ? (
-                <Link
-                  href="/me"
-                  className={`rounded-full border border-[#d9d7f2] px-3 py-1.5 text-xs transition ${
-                    pathname === "/me" || pathname.startsWith("/me/")
-                      ? "bg-[#ecebff] text-[#3733b8]"
-                      : "text-[#5c5a82] hover:bg-[#f0efff] hover:text-[#2f2d66]"
-                  }`}
-                >
-                  {viewer.name || "member"}
-                </Link>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setProfileOpen((value) => !value)}
+                    onBlur={() => setTimeout(() => setProfileOpen(false), 120)}
+                    className={`rounded-full border border-[var(--border)] px-3 py-1.5 text-xs transition ${
+                      pathname === "/me" || pathname.startsWith("/me/")
+                        ? "bg-[#171d25] text-[var(--foreground)]"
+                        : "text-[var(--muted)] hover:bg-[#171d25] hover:text-[var(--foreground)]"
+                    }`}
+                  >
+                    {viewer.name || "member"} ▾
+                  </button>
+                  {profileOpen && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-xl border border-[var(--border)] bg-[#0f1318] p-2 shadow-[0_20px_32px_rgba(0,0,0,0.45)]">
+                      <Link
+                        href="/me"
+                        className="block rounded-lg px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[#171d25]"
+                      >
+                        profile
+                      </Link>
+                      <a
+                        href="/auth/logout"
+                        className="block rounded-lg px-3 py-2 text-sm text-[var(--muted)] hover:bg-[#171d25] hover:text-[var(--foreground)]"
+                      >
+                        log out
+                      </a>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <a
                   href="/auth/login"
-                  className="rounded-full bg-[#1a1738] px-3 py-1.5 text-sm text-white transition hover:bg-[#111022]"
+                  className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-sm text-white transition hover:bg-[var(--accent-highlight)]"
                 >
                   log in
                 </a>

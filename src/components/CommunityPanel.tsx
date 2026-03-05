@@ -220,19 +220,19 @@ export function CommunityPanel({
   return (
     <section
       id="community"
-      className="space-y-5 rounded-3xl border border-[#d9d7f2] bg-white p-5 shadow-[0_12px_26px_rgba(42,39,85,0.05)] sm:p-6"
+      className="space-y-5 rounded-3xl border border-[var(--border)] bg-[var(--panel)] p-5 shadow-[0_12px_26px_rgba(42,39,85,0.05)] sm:p-6"
     >
-      <div className="space-y-4 rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-4">
+      <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[#0f1318] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <h3 className="text-base font-semibold text-[#1a1738]">add your take</h3>
-            <p className="text-sm text-[#676489]">Rate it, leave a comment, or do both.</p>
+            <h3 className="text-base font-semibold text-[var(--foreground)]">add your take</h3>
+            <p className="text-sm text-[var(--muted)]">Rate it, leave a comment, or do both.</p>
           </div>
           {isAuthenticated && hasSubmittedTake && (
             <button
               type="button"
               onClick={() => setIsComposerCollapsed((prev) => !prev)}
-              className="rounded-lg border border-[#d9d7f2] px-3 py-1.5 text-xs font-medium text-[#4d4a6b] transition hover:border-[#605bff] hover:text-[#1a1738]"
+              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)]"
             >
               {isComposerCollapsed ? "update your take" : "minimize"}
             </button>
@@ -240,17 +240,17 @@ export function CommunityPanel({
         </div>
 
         {!isAuthenticated ? (
-          <div className="rounded-xl border border-[#d9d7f2] bg-white p-4 text-sm text-[#4d4a6b]">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 text-sm text-[var(--muted)]">
             <p>Rate and comment are available for logged-in members.</p>
             <Link
               href="/auth/login"
-              className="mt-3 inline-flex rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022]"
+              className="mt-3 inline-flex rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-highlight)]"
             >
               log in
             </Link>
           </div>
         ) : isComposerCollapsed ? (
-          <div className="rounded-xl border border-[#d9d7f2] bg-white p-4 text-sm text-[#4d4a6b]">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 text-sm text-[var(--muted)]">
             <p>
               you have already submitted your take.
               {myRating !== null ? ` current rating: ${formatScore(myRating)}.` : ""}
@@ -258,7 +258,7 @@ export function CommunityPanel({
             <button
               type="button"
               onClick={() => setIsComposerCollapsed(false)}
-              className="mt-3 rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022]"
+              className="mt-3 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-highlight)]"
             >
               update your take
             </button>
@@ -266,9 +266,9 @@ export function CommunityPanel({
         ) : (
           <>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 rounded-xl border border-[#e4e3f7] bg-white p-3">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">rating (optional)</p>
-                <label className="block text-sm text-[#4d4a6b]">
+              <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-3">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted)]">rating (optional)</p>
+                <label className="block text-sm text-[var(--muted)]">
                   score (1-10)
                   <input
                     type="number"
@@ -280,24 +280,24 @@ export function CommunityPanel({
                       setScore(Number(event.target.value));
                       setRatingTouched(true);
                     }}
-                    className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
+                    className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
-                <p className="text-xs text-[#676489]">
+                <p className="text-xs text-[var(--muted)]">
                   {ratingTouched ? "rating will be submitted" : `current saved rating: ${formatScore(myRating)}`}
                 </p>
               </div>
 
-              <div className="space-y-2 rounded-xl border border-[#e4e3f7] bg-white p-3">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">comment (optional)</p>
-                <p className="text-xs text-[#676489]">posting as {(viewerDisplayName || "member").trim()}</p>
-                <label className="block text-sm text-[#4d4a6b]">
+              <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-3">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted)]">comment (optional)</p>
+                <p className="text-xs text-[var(--muted)]">posting as {(viewerDisplayName || "member").trim()}</p>
+                <label className="block text-sm text-[var(--muted)]">
                   comment
                   <textarea
                     value={commentBody}
                     onChange={(event) => setCommentBody(event.target.value)}
                     rows={4}
-                    className="mt-2 w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-[#1a1738] outline-none transition focus:border-[#605bff]"
+                    className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
               </div>
@@ -309,7 +309,7 @@ export function CommunityPanel({
                 type="button"
                 onClick={submitContribution}
                 disabled={busy || !captchaToken}
-                className="rounded-xl bg-[#1a1738] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#111022] disabled:opacity-50"
+                className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--accent-highlight)] disabled:opacity-50"
               >
                 submit contribution
               </button>
@@ -318,29 +318,29 @@ export function CommunityPanel({
         )}
       </div>
 
-      {statusMessage && <p className="text-sm text-[#605bff]">{statusMessage}</p>}
+      {statusMessage && <p className="text-sm text-[var(--accent-highlight)]">{statusMessage}</p>}
 
-      <footer className="space-y-3 border-t border-[#e4e3f7] pt-5">
+      <footer className="space-y-3 border-t border-[var(--border)] pt-5">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-[#1a1738]">comment feed</h3>
-          <p className="text-xs text-[#8d8ab0]">latest first</p>
+          <h3 className="text-base font-semibold text-[var(--foreground)]">comment feed</h3>
+          <p className="text-xs text-[var(--muted)]">latest first</p>
         </div>
 
-        {!sortedComments.length && <p className="text-sm text-[#676489]">no comments yet.</p>}
+        {!sortedComments.length && <p className="text-sm text-[var(--muted)]">no comments yet.</p>}
         <ul className="space-y-3">
           {sortedComments.map((comment) => (
-            <li key={comment.id} className="rounded-2xl border border-[#e4e3f7] bg-[#f8f7ff] p-3">
+            <li key={comment.id} className="rounded-2xl border border-[var(--border)] bg-[#0f1318] p-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium text-[#1a1738]">
+                  <p className="text-sm font-medium text-[var(--foreground)]">
                     {comment.displayName}
                     {comment.isVerifiedUser && (
-                      <span className="ml-2 rounded-full bg-[#ecebff] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#3733b8]">
+                      <span className="ml-2 rounded-full bg-[#171d25] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--accent-highlight)]">
                         member
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-[#8d8ab0]">
+                  <p className="text-xs text-[var(--muted)]">
                     {new Date(comment.createdAt).toLocaleString("en-US", {
                       dateStyle: "medium",
                       timeStyle: "short",
@@ -351,20 +351,20 @@ export function CommunityPanel({
                   <button
                     type="button"
                     onClick={() => reportComment(comment.id)}
-                    className="rounded-lg border border-[#d9d7f2] px-2 py-1 text-[#676489] transition hover:border-[#605bff] hover:text-[#1a1738]"
+                    className="rounded-lg border border-[var(--border)] px-2 py-1 text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)]"
                   >
                     report
                   </button>
                   <button
                     type="button"
                     onClick={() => deleteOwnComment(comment.id)}
-                    className="rounded-lg border border-[#d9d7f2] px-2 py-1 text-[#676489] transition hover:border-[#605bff] hover:text-[#1a1738]"
+                    className="rounded-lg border border-[var(--border)] px-2 py-1 text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)]"
                   >
                     delete
                   </button>
                 </div>
               </div>
-              <p className="mt-2 text-sm text-[#4d4a6b]">{comment.body}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">{comment.body}</p>
             </li>
           ))}
         </ul>

@@ -11,6 +11,8 @@ import type { Actor, ActorMarketMetric, HomepageMarketPayload } from "@/lib/type
 interface ActorDiscoveryProps {
   actors: Actor[];
   market: HomepageMarketPayload;
+  showHero?: boolean;
+  showMarketDashboard?: boolean;
 }
 
 type ActorSortMode = "momentum" | "avg_rating" | "comments7d" | "name";
@@ -25,7 +27,7 @@ function getMetricMap(metrics: ActorMarketMetric[]): Map<string, ActorMarketMetr
   return map;
 }
 
-export function ActorDiscovery({ actors, market }: ActorDiscoveryProps) {
+export function ActorDiscovery({ actors, market, showHero = true, showMarketDashboard = true }: ActorDiscoveryProps) {
   const [search, setSearch] = useState("");
   const [sortMode, setSortMode] = useState<ActorSortMode>("momentum");
   const [filterMode, setFilterMode] = useState<ActorFilterMode>("all");
@@ -99,28 +101,46 @@ export function ActorDiscovery({ actors, market }: ActorDiscoveryProps) {
 
   return (
     <section className="space-y-8">
-      <div className="rounded-[2rem] border border-[#d9d7f2] bg-white p-8 shadow-[0_18px_50px_rgba(42,39,85,0.07)] sm:p-10">
-        <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#676489]">curated binge lists</p>
-        <h1 className="mt-3 text-4xl font-semibold text-[#1a1738] sm:text-5xl">moviethon</h1>
-        <p className="mt-4 max-w-2xl text-base text-[#4d4a6b]">
-          binge the best runs from your favorite actors. move decade by decade, compare scores, and build your next
-          weekend watchlist.
-        </p>
+      {showHero ? (
+        <div className="panel-shell rounded-3xl p-8 sm:p-10">
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--muted)]">curated binge lists</p>
+          <h1 className="mt-3 text-4xl font-semibold text-[var(--foreground)] sm:text-5xl">moviethon</h1>
+          <p className="mt-4 max-w-2xl text-base text-[var(--muted)]">
+            binge the best runs from your favorite actors. move decade by decade, compare scores, and build your next
+            weekend watchlist.
+          </p>
 
-        <label className="mt-8 block max-w-xl">
-          <span className="mb-2 block text-sm font-medium text-[#676489]">find an actor</span>
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="search your next binge"
-            className="w-full rounded-2xl border border-[#d9d7f2] bg-white px-4 py-3 text-sm text-[#1a1738] outline-none transition focus:border-[#605bff] focus:ring-2 focus:ring-[#605bff]/20"
-          />
-        </label>
-      </div>
+          <label className="mt-8 block max-w-xl">
+            <span className="mb-2 block text-sm font-medium text-[var(--muted)]">find an actor</span>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="search your next binge"
+              className="w-full rounded-xl border border-[var(--border)] bg-[#0f1318] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+            />
+          </label>
+        </div>
+      ) : (
+        <div className="panel-shell rounded-2xl p-5">
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--muted)]">actor discovery</p>
+            <h2 className="text-2xl font-semibold text-[var(--foreground)]">browse actor binge lists</h2>
+          </div>
+          <label className="mt-4 block max-w-xl">
+            <span className="mb-2 block text-sm font-medium text-[var(--muted)]">find an actor</span>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="search your next binge"
+              className="w-full rounded-xl border border-[var(--border)] bg-[#0f1318] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+            />
+          </label>
+        </div>
+      )}
 
-      <MarketDashboard market={market} />
+      {showMarketDashboard ? <MarketDashboard market={market} /> : null}
 
-      <div className="grid gap-3 rounded-3xl border border-[#d9d7f2] bg-white p-4 shadow-[0_8px_18px_rgba(42,39,85,0.04)] md:grid-cols-[1fr,220px]">
+      <div className="grid gap-3 panel-shell rounded-2xl p-4 md:grid-cols-[1fr,220px]">
         <div className="flex flex-wrap gap-2">
           {([
             { value: "all", label: "all" },
@@ -134,8 +154,8 @@ export function ActorDiscovery({ actors, market }: ActorDiscoveryProps) {
               onClick={() => setFilterMode(option.value)}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                 filterMode === option.value
-                  ? "border-[#605bff] bg-[#ecebff] text-[#2e2a87]"
-                  : "border-[#d9d7f2] bg-white text-[#676489] hover:border-[#b9b6eb]"
+                  ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                  : "border-[var(--border)] bg-[#0f1318] text-[var(--muted)] hover:border-[#293241] hover:text-[var(--foreground)]"
               }`}
             >
               {option.label}
@@ -144,11 +164,11 @@ export function ActorDiscovery({ actors, market }: ActorDiscoveryProps) {
         </div>
 
         <label className="space-y-1">
-          <span className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">sort actors</span>
+          <span className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">sort actors</span>
           <select
             value={sortMode}
             onChange={(event) => setSortMode(event.target.value as ActorSortMode)}
-            className="w-full rounded-xl border border-[#d9d7f2] bg-white px-3 py-2 text-sm text-[#1a1738] outline-none transition focus:border-[#605bff]"
+            className="w-full rounded-xl border border-[var(--border)] bg-[#0f1318] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
           >
             <option value="momentum">momentum (7d ratings)</option>
             <option value="avg_rating">average user rating</option>
@@ -166,43 +186,43 @@ export function ActorDiscovery({ actors, market }: ActorDiscoveryProps) {
             <Link
               key={actor.id}
               href={`/actors/${actor.slug}`}
-              className="group overflow-hidden rounded-3xl border border-[#d9d7f2] bg-white shadow-[0_10px_24px_rgba(42,39,85,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(42,39,85,0.1)]"
+              className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--panel)] transition hover:-translate-y-0.5"
             >
               <div
-                className="aspect-[2/3] w-full border-b border-[#e4e3f7] bg-no-repeat bg-center"
+                className="aspect-[2/3] w-full border-b border-[var(--border)] bg-no-repeat bg-center"
                 style={{
-                  backgroundImage: actor.heroImage ? `url(${actor.heroImage})` : "linear-gradient(140deg, #efeeff, #f8f8ff)",
+                  backgroundImage: actor.heroImage ? `url(${actor.heroImage})` : "none",
                   backgroundSize: "contain",
-                  backgroundColor: "#f3f2ff",
+                  backgroundColor: "#0f1318",
                 }}
               />
               <div className="space-y-2 p-4">
-                <h2 className="text-xl font-semibold text-[#1a1738]">{actor.name}</h2>
-                <p className="line-clamp-2 text-sm leading-6 text-[#4d4a6b]">{actor.bio ?? "No bio yet."}</p>
+                <h2 className="text-xl font-semibold text-[var(--foreground)]">{actor.name}</h2>
+                <p className="line-clamp-2 text-sm leading-6 text-[var(--muted)]">{actor.bio ?? "No bio yet."}</p>
 
                 <div className="grid grid-cols-3 gap-2 pt-1">
-                  <div className="rounded-xl border border-[#e4e3f7] bg-[#f8f7ff] px-2 py-2 text-center">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">ratings 7d</p>
-                    <p className="mt-1 text-xs font-semibold text-[#1a1738]">{metric?.ratings7d ?? 0}</p>
+                  <div className="rounded-xl border border-[var(--border)] bg-[#0f1318] px-2 py-2 text-center">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--muted)]">ratings 7d</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--foreground)]">{metric?.ratings7d ?? 0}</p>
                   </div>
-                  <div className="rounded-xl border border-[#e4e3f7] bg-[#f8f7ff] px-2 py-2 text-center">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">avg</p>
-                    <p className="mt-1 text-xs font-semibold text-[#1a1738]">{formatScore(metric?.avgRatingAllTime ?? null)}</p>
+                  <div className="rounded-xl border border-[var(--border)] bg-[#0f1318] px-2 py-2 text-center">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--muted)]">avg</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--foreground)]">{formatScore(metric?.avgRatingAllTime ?? null)}</p>
                   </div>
-                  <div className="rounded-xl border border-[#e4e3f7] bg-[#f8f7ff] px-2 py-2 text-center">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-[#8d8ab0]">comments 7d</p>
-                    <p className="mt-1 text-xs font-semibold text-[#1a1738]">{metric?.comments7d ?? 0}</p>
+                  <div className="rounded-xl border border-[var(--border)] bg-[#0f1318] px-2 py-2 text-center">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-[var(--muted)]">comments 7d</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--foreground)]">{metric?.comments7d ?? 0}</p>
                   </div>
                 </div>
 
                 {metric && (
-                  <div className="flex items-center justify-between rounded-xl border border-[#e4e3f7] bg-[#f8f7ff] px-2.5 py-1.5">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#8d8ab0]">trend</span>
+                  <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[#0f1318] px-2.5 py-1.5">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">trend</span>
                     <Sparkline points={metric.activitySpark14d} />
                   </div>
                 )}
 
-                <p className="pt-1 text-sm font-medium text-[#605bff]">start binge →</p>
+                <p className="pt-1 text-sm font-medium text-[var(--accent-highlight)]">start binge →</p>
               </div>
             </Link>
           );
@@ -210,7 +230,7 @@ export function ActorDiscovery({ actors, market }: ActorDiscoveryProps) {
       </div>
 
       {!filtered.length && (
-        <p className="rounded-2xl border border-[#d9d7f2] bg-white p-5 text-sm text-[#676489]">
+        <p className="panel-shell rounded-2xl p-5 text-sm text-[var(--muted)]">
           No actor found. Try a different search, filter, or sort.
         </p>
       )}

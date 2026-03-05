@@ -1,5 +1,6 @@
 export type SortBy = "release_date" | "imdb" | "community" | "owner";
 export type SortDir = "asc" | "desc";
+export type ChartRange = "7d" | "30d" | "90d" | "1y" | "all";
 
 export interface Actor {
   id: string;
@@ -168,4 +169,246 @@ export interface HomepageMarketPayload {
     discussed: ActorMarketMetric[];
   };
   actors: ActorMarketMetric[];
+}
+
+export type VolatilityClass = "stable" | "moderate" | "high" | "insufficient";
+
+export interface IndexFormulaVersion {
+  id: string;
+  versionKey: string;
+  weights: Record<string, number>;
+  normalization: Record<string, unknown>;
+  changelog: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IndexRun {
+  id: string;
+  asOfDate: string;
+  formulaVersionId: string;
+  status: string;
+  summary: Record<string, unknown> | null;
+  error: Record<string, unknown> | null;
+  startedAt: string;
+  finishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MovieDailyMetrics {
+  movieId: string;
+  asOfDate: string;
+  ratingsCount7d: number;
+  ratingsCount30d: number;
+  ratingsCount24h: number;
+  commentsCount7d: number;
+  commentsCount30d: number;
+  commentsCount24h: number;
+  watchlistAdds24h: number;
+  ratingVelocityRatio: number | null;
+  avgRating7d: number | null;
+  avgRating30d: number | null;
+  tmdbPopularity: number | null;
+  tmdbPopularityDelta: number | null;
+}
+
+export interface FilmIndexHistoryRow {
+  movieId: string;
+  asOfDate: string;
+  indexValue: number;
+  delta1d: number | null;
+  rankPosition: number | null;
+  rankChange1d: number | null;
+  qualityComponent: number;
+  velocityComponent: number;
+  engagementComponent: number;
+  recencyComponent: number;
+  externalComponent: number;
+  delta7d: number | null;
+  delta30d: number | null;
+  volatility30d: number | null;
+  volatilityClass: VolatilityClass;
+  metadata: Record<string, unknown>;
+  formulaVersion: string | null;
+}
+
+export interface ActorIndexHistoryRow {
+  actorId: string;
+  asOfDate: string;
+  indexValue: number;
+  delta1d: number | null;
+  rankPosition: number | null;
+  rankChange1d: number | null;
+  delta7d: number | null;
+  delta30d: number | null;
+  volatility30d: number | null;
+  volatilityClass: VolatilityClass;
+  contribution: Array<Record<string, unknown>>;
+  formulaVersion: string | null;
+}
+
+export interface GenreIndexHistoryRow {
+  genre: string;
+  asOfDate: string;
+  indexValue: number;
+  delta1d: number | null;
+  rankPosition: number | null;
+  rankChange1d: number | null;
+  delta7d: number | null;
+  delta30d: number | null;
+  volatility30d: number | null;
+  volatilityClass: VolatilityClass;
+  formulaVersion: string | null;
+}
+
+export interface RankingRow {
+  id: string;
+  label: string;
+  slug: string;
+  entityType: "film" | "actor" | "genre";
+  actorSlug: string | null;
+  actorName: string | null;
+  indexValue: number;
+  delta1d: number | null;
+  delta7d: number | null;
+  delta30d: number | null;
+  rankPosition: number | null;
+  rankChange1d: number | null;
+  volatilityClass: VolatilityClass;
+  asOfDate: string;
+  trendPoints?: number[];
+  confidenceScore?: number | null;
+}
+
+export interface GlobalIndexPoint {
+  asOfDate: string;
+  indexValue: number;
+  delta1d: number | null;
+  delta7d: number | null;
+  delta30d: number | null;
+  volatility30d: number | null;
+  volatilityClass: VolatilityClass;
+  formulaVersion: string | null;
+}
+
+export interface PeerRow {
+  id: string;
+  slug: string;
+  label: string;
+  entityType: "film" | "actor" | "genre";
+  actorSlug: string | null;
+  actorName: string | null;
+  indexValue: number;
+  delta7d: number | null;
+  volatilityClass: VolatilityClass;
+  rankPosition: number | null;
+  similarityScore: number;
+}
+
+export interface CommunityVelocityRow {
+  movieId: string;
+  movieSlug: string;
+  movieTitle: string;
+  actorSlug: string | null;
+  actorName: string | null;
+  newRatings24h: number;
+  ratingVelocityRatio: number | null;
+  comments24h: number;
+}
+
+export interface SnapshotRow {
+  asOfDate: string;
+  indexValue: number;
+  rankPosition: number | null;
+  delta1d: number | null;
+  ratingScore: number | null;
+  velocityScore: number | null;
+  externalScore: number | null;
+}
+
+export interface FilmAnalyticsPayload {
+  movieId: string;
+  actorSlug: string | null;
+  actorName: string | null;
+  indexCurrent: number | null;
+  rankPosition: number | null;
+  rankChange1d: number | null;
+  delta1d: number | null;
+  delta7d: number | null;
+  delta30d: number | null;
+  volatilityClass: VolatilityClass;
+  trend: Array<{ date: string; value: number }>;
+  snapshots: SnapshotRow[];
+  peers: PeerRow[];
+  alsoMoving: PeerRow[];
+  communityVelocity: {
+    ratings24h: number;
+    comments24h: number;
+    velocityRatio: number | null;
+    trend: number[];
+  };
+}
+
+export interface ActorAnalyticsPayload {
+  actorId: string;
+  actorSlug: string;
+  actorName: string;
+  indexCurrent: number | null;
+  rankPosition: number | null;
+  rankChange1d: number | null;
+  delta1d: number | null;
+  delta7d: number | null;
+  delta30d: number | null;
+  volatilityClass: VolatilityClass;
+  trend: Array<{ date: string; value: number }>;
+  snapshots: SnapshotRow[];
+  peers: PeerRow[];
+  alsoMoving: PeerRow[];
+  topGenres: Array<{ genre: string; contributionPercent: number; averageFilmIndex: number }>;
+  contributions: Array<{ movieId: string; movieSlug: string; title: string; roleWeight: number; filmIndex: number; contributionPercent: number; filmDelta7d: number | null }>;
+}
+
+export interface GenreAnalyticsPayload {
+  genre: string;
+  indexCurrent: number | null;
+  rankPosition: number | null;
+  rankChange1d: number | null;
+  delta1d: number | null;
+  delta7d: number | null;
+  delta30d: number | null;
+  volatilityClass: VolatilityClass;
+  trend: Array<{ date: string; value: number }>;
+  topFilms: PeerRow[];
+  relatedGenres: PeerRow[];
+  insights: string[];
+  volatilityDistribution: { stable: number; moderate: number; high: number };
+  actorExposure: Array<{ actorId: string; actorSlug: string; actorName: string; contributionPercent: number; avgFilmIndex: number; actorIndex: number | null }>;
+}
+
+export interface IndexHealth {
+  ok: boolean;
+  stale: boolean;
+  latestAsOfDate: string | null;
+  latestRunStatus: string | null;
+  latestRunFinishedAt: string | null;
+  runSummary: Record<string, unknown> | null;
+  runError: Record<string, unknown> | null;
+  secondsSinceLastRun: number | null;
+}
+
+export interface IndexAnomaly {
+  movieId: string;
+  movieTitle: string;
+  actorSlug: string | null;
+  actorName: string | null;
+  indexValue: number;
+  delta7d: number | null;
+  volatilityClass: VolatilityClass;
+  ratingsCount7d: number;
+  ratingsCount30d: number;
+  commentsCount7d: number;
+  confidenceScore: number;
+  reasons: string[];
 }

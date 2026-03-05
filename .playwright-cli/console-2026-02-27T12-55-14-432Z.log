@@ -55,3 +55,171 @@ https://react.dev/link/hydration-mismatch
     at performWorkOnRoot (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js:9068:150)
     at performWorkOnRootViaSchedulerTask (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_react-dom_1e674e59._.js:10230:9)
     at MessagePort.performWorkUntilDeadline (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_a0e4c7b4._.js:2647:64)
+[84668958ms] [WARNING] [Fast Refresh] performing full reload
+
+Fast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.
+You might have a file which exports a React component but also exports a value that is imported by a non-React component file.
+Consider migrating the non-React component export to a separate file and importing it into both files.
+
+It is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.
+Fast Refresh requires at least one parent function component in your React tree. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[88576829ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88577833ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88578836ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88579839ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88580843ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88585846ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88590851ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88595853ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88600859ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88605863ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88610867ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[88615876ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=L0B6cWT3AajHiWFK0tznb' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[93145689ms] [ERROR] ./src/app/layout.tsx:12:1
+Module not found: Can't resolve './globals.css'
+  10 | import { fallbackActors } from "@/lib/data/fallback";
+  11 | import { listFeaturedActors } from "@/lib/data/queries";
+> 12 | import "./globals.css";
+     | ^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | const funnelDisplay = Funnel_Display({
+  15 |   variable: "--font-funnel-display",
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[93806849ms] [ERROR] ./src/app/page.tsx:2:1
+Module not found: Can't resolve '@/components/MarketOverview'
+  1 | import { ActorDiscovery } from "@/components/ActorDiscovery";
+> 2 | import { MarketOverview } from "@/components/MarketOverview";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { fallbackFeaturedActors, fallbackHomepageMarketPayload } from "@/lib/data/fallback";
+  4 | import { getHomepageIndexOverview } from "@/lib/data/index-queries";
+  5 | import { getHomepageMarketStats, listFeaturedActors } from "@/lib/data/queries";
+
+Import map: aliased to relative './src/components/MarketOverview' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[93807021ms] [ERROR] ./src/app/page.tsx:2:1
+Module not found: Can't resolve '@/components/MarketOverview'
+  1 | import { ActorDiscovery } from "@/components/ActorDiscovery";
+> 2 | import { MarketOverview } from "@/components/MarketOverview";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { fallbackFeaturedActors, fallbackHomepageMarketPayload } from "@/lib/data/fallback";
+  4 | import { getHomepageIndexOverview } from "@/lib/data/index-queries";
+  5 | import { getHomepageMarketStats, listFeaturedActors } from "@/lib/data/queries";
+
+Import map: aliased to relative './src/components/MarketOverview' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[93807371ms] [ERROR] ./src/app/page.tsx:2:1
+Module not found: Can't resolve '@/components/MarketOverview'
+  1 | import { ActorDiscovery } from "@/components/ActorDiscovery";
+> 2 | import { MarketOverview } from "@/components/MarketOverview";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { fallbackFeaturedActors, fallbackHomepageMarketPayload } from "@/lib/data/fallback";
+  4 | import { getHomepageIndexOverview } from "@/lib/data/index-queries";
+  5 | import { getHomepageMarketStats, listFeaturedActors } from "@/lib/data/queries";
+
+Import map: aliased to relative './src/components/MarketOverview' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[93807520ms] [ERROR] ./src/app/page.tsx:2:1
+Module not found: Can't resolve '@/components/MarketOverview'
+  1 | import { ActorDiscovery } from "@/components/ActorDiscovery";
+> 2 | import { MarketOverview } from "@/components/MarketOverview";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { fallbackFeaturedActors, fallbackHomepageMarketPayload } from "@/lib/data/fallback";
+  4 | import { getHomepageIndexOverview } from "@/lib/data/index-queries";
+  5 | import { getHomepageMarketStats, listFeaturedActors } from "@/lib/data/queries";
+
+Import map: aliased to relative './src/components/MarketOverview' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[93807724ms] [ERROR] ./src/app/page.tsx:2:1
+Module not found: Can't resolve '@/components/MarketOverview'
+  1 | import { ActorDiscovery } from "@/components/ActorDiscovery";
+> 2 | import { MarketOverview } from "@/components/MarketOverview";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { fallbackFeaturedActors, fallbackHomepageMarketPayload } from "@/lib/data/fallback";
+  4 | import { getHomepageIndexOverview } from "@/lib/data/index-queries";
+  5 | import { getHomepageMarketStats, listFeaturedActors } from "@/lib/data/queries";
+
+Import map: aliased to relative './src/components/MarketOverview' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[93807725ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807741ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807749ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807756ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807763ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807771ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807778ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807798ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807806ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807823ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/?_rsc=1ch6o:0
+[93807856ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/:0
+[93807970ms] Error: ./src/app/page.tsx:2:1
+Module not found: Can't resolve '@/components/MarketOverview'
+  1 | import { ActorDiscovery } from "@/components/ActorDiscovery";
+> 2 | import { MarketOverview } from "@/components/MarketOverview";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { fallbackFeaturedActors, fallbackHomepageMarketPayload } from "@/lib/data/fallback";
+  4 | import { getHomepageIndexOverview } from "@/lib/data/index-queries";
+  5 | import { getHomepageMarketStats, listFeaturedActors } from "@/lib/data/queries";
+
+Import map: aliased to relative './src/components/MarketOverview' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/page.tsx:2:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at Object.getCompilationErrors (file:///Users/orionbot/Documents/Projects/Tom Hankathon/node_modules/next/dist/server/dev/hot-reloader-turbopack.js:1008:59)
+    at DevBundlerService.getCompilationError (file:///Users/orionbot/Documents/Projects/Tom Hankathon/node_modules/next/dist/server/lib/dev-bundler-service.js:44:55)
+    at DevServer.getCompilationError (file:///Users/orionbot/Documents/Projects/Tom Hankathon/node_modules/next/dist/server/dev/next-dev-server.js:706:42)
+    at DevServer.findPageComponents (file:///Users/orionbot/Documents/Projects/Tom Hankathon/node_modules/next/dist/server/dev/next-dev-server.js:676:43)
+    at async DevServer.renderErrorToResponseImpl (file:///Users/orionbot/Documents/Projects/Tom Hankathon/node_modules/next/dist/server/base-server.js:1733:26)
+[93807983ms] [ERROR] ./src/app/page.tsx:2:1
+Module not found: Can't resolve '@/components/MarketOverview'
+  1 | import { ActorDiscovery } from "@/components/ActorDiscovery";
+> 2 | import { MarketOverview } from "@/components/MarketOverview";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { fallbackFeaturedActors, fallbackHomepageMarketPayload } from "@/lib/data/fallback";
+  4 | import { getHomepageIndexOverview } from "@/lib/data/index-queries";
+  5 | import { getHomepageMarketStats, listFeaturedActors } from "@/lib/data/queries";
+
+Import map: aliased to relative './src/components/MarketOverview' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b3fb3b5f._.js:1920
+[93808080ms] [ERROR] ./src/app/page.tsx:2:1
+Module not found: Can't resolve '@/components/MarketOverview'
+  1 | import { ActorDiscovery } from "@/components/ActorDiscovery";
+> 2 | import { MarketOverview } from "@/components/MarketOverview";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { fallbackFeaturedActors, fallbackHomepageMarketPayload } from "@/lib/data/fallback";
+  4 | import { getHomepageIndexOverview } from "@/lib/data/index-queries";
+  5 | import { getHomepageMarketStats, listFeaturedActors } from "@/lib/data/queries";
+
+Import map: aliased to relative './src/components/MarketOverview' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b3fb3b5f._.js:1920
+[93857181ms] [WARNING] [Fast Refresh] performing full reload
+
+Fast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.
+You might have a file which exports a React component but also exports a value that is imported by a non-React component file.
+Consider migrating the non-React component export to a separate file and importing it into both files.
+
+It is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.
+Fast Refresh requires at least one parent function component in your React tree. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b3fb3b5f._.js:1206
+[93857181ms] [WARNING] [Fast Refresh] performing full reload because your application had an unrecoverable error @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b3fb3b5f._.js:1206
+[93860542ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/:0
+[93875629ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/?_rsc=1e9w2:0
+[93875804ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/:0
+[100665996ms] [WARNING] [Fast Refresh] performing full reload
+
+Fast Refresh will perform a full reload when you edit a file that's imported by modules outside of the React rendering tree.
+You might have a file which exports a React component but also exports a value that is imported by a non-React component file.
+Consider migrating the non-React component export to a separate file and importing it into both files.
+
+It is also possible the parent component of the component you edited is a class component, which disables Fast Refresh.
+Fast Refresh requires at least one parent function component in your React tree. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297

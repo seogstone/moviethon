@@ -83,14 +83,14 @@ export function HcaptchaWidget({ token, onTokenChange, resetNonce }: HcaptchaWid
   if (!SITE_KEY) {
     if (!IS_DEV) {
       return (
-        <p className="text-xs text-[#c26b00]">
+        <p className="text-xs text-[var(--negative)]">
           Captcha is misconfigured. Missing `NEXT_PUBLIC_HCAPTCHA_SITE_KEY`.
         </p>
       );
     }
 
     return (
-      <p className="text-xs text-[#8e8e93]">
+      <p className="text-xs text-[var(--muted)]">
         Captcha bypass enabled for local development (`HCAPTCHA_BYPASS=true`).
       </p>
     );
@@ -99,7 +99,7 @@ export function HcaptchaWidget({ token, onTokenChange, resetNonce }: HcaptchaWid
   return (
     <div className="space-y-2">
       <div ref={containerRef} />
-      {!token && <p className="text-xs text-[#c26b00]">Complete captcha before submitting.</p>}
+      {!token && <p className="text-xs text-[var(--volatility)]">Complete captcha before submitting.</p>}
     </div>
   );
 }

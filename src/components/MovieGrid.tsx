@@ -13,9 +13,9 @@ interface MovieGridProps {
 
 function scoreBadge(label: string, value: string) {
   return (
-    <div className="rounded-xl border border-[#e4e3f7] bg-[#f8f7ff] px-2.5 py-2 text-center">
-      <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">{label}</div>
-      <div className="mt-1 text-xs font-medium text-[#1a1738]">{value}</div>
+    <div className="rounded-xl border border-[var(--border)] bg-[#0f1318] px-2.5 py-2 text-center">
+      <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">{label}</div>
+      <div className="mt-1 text-xs font-medium text-[var(--foreground)]">{value}</div>
     </div>
   );
 }
@@ -23,7 +23,7 @@ function scoreBadge(label: string, value: string) {
 export function MovieGrid({ actor, movies, isAuthenticated, watchlistMovieIds }: MovieGridProps) {
   if (!movies.length) {
     return (
-      <p className="rounded-2xl border border-[#d9d7f2] bg-white p-5 text-sm text-[#676489]">
+      <p className="panel-shell rounded-2xl p-5 text-sm text-[var(--muted)]">
         no movies match this filter combination.
       </p>
     );
@@ -34,7 +34,7 @@ export function MovieGrid({ actor, movies, isAuthenticated, watchlistMovieIds }:
       {movies.map((movie) => (
         <article
           key={movie.id}
-          className="group overflow-hidden rounded-3xl border border-[#d9d7f2] bg-white shadow-[0_10px_24px_rgba(42,39,85,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(42,39,85,0.1)]"
+          className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--panel)] transition hover:-translate-y-0.5"
         >
           <div className="relative">
             <WatchlistToggle
@@ -43,20 +43,20 @@ export function MovieGrid({ actor, movies, isAuthenticated, watchlistMovieIds }:
               isAuthenticated={isAuthenticated}
               className="absolute right-3 top-3 z-10"
             />
-            <Link href={`/actors/${actor.slug}/movies/${movie.slug}`} className="block">
+            <Link href={`/movies/${movie.slug}?actor=${actor.slug}`} className="block">
               <div
-                className="aspect-[2/3] w-full border-b border-[#e4e3f7] bg-no-repeat bg-center"
+                className="aspect-[2/3] w-full border-b border-[var(--border)] bg-no-repeat bg-center"
                 style={{
-                  backgroundImage: movie.posterUrl ? `url(${movie.posterUrl})` : "linear-gradient(180deg, #f2f1ff, #fafafe)",
+                  backgroundImage: movie.posterUrl ? `url(${movie.posterUrl})` : "none",
                   backgroundSize: "contain",
-                  backgroundColor: "#f3f2ff",
+                  backgroundColor: "#0f1318",
                 }}
               />
 
               <div className="space-y-3 p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8d8ab0]">{formatDate(movie.releaseDate)}</p>
-                <h3 className="line-clamp-2 text-xl font-semibold text-[#1a1738]">{movie.title}</h3>
-                <p className="line-clamp-2 text-sm text-[#676489]">{movie.genres.join(" • ")}</p>
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">{formatDate(movie.releaseDate)}</p>
+                <h3 className="line-clamp-2 text-xl font-semibold text-[var(--foreground)]">{movie.title}</h3>
+                <p className="line-clamp-2 text-sm text-[var(--muted)]">{movie.genres.join(" • ")}</p>
 
                 <div className="grid grid-cols-3 gap-2">
                   {scoreBadge("IMDb", formatScore(movie.ratings.imdbScore))}

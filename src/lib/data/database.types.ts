@@ -27,6 +27,16 @@ export interface Database {
       comment_reports: GenericTable;
       sync_runs: GenericTable;
       api_rate_limits: GenericTable;
+      index_formula_versions: GenericTable;
+      index_runs: GenericTable;
+      movie_daily_metrics: GenericTable;
+      film_index_history: GenericTable;
+      actor_movie_role_weights: GenericTable;
+      actor_index_history: GenericTable;
+      genre_index_history: GenericTable;
+      global_index_history: GenericTable;
+      user_vote_events: GenericTable;
+      comment_events: GenericTable;
     };
     Views: {
       movie_rating_stats: GenericView;

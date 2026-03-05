@@ -14,6 +14,11 @@ Tom Hanks first, multi-actor ready.
 - `/` featured actor discovery (Tom Hanks seeded)
 - `/actors/[actorSlug]` actor movie grid (chronological, filters, sorts)
 - `/actors/[actorSlug]/movies/[movieSlug]` movie detail + community panel
+- `/rankings/films`
+- `/rankings/actors`
+- `/rankings/genres`
+- `/rankings/gainers`
+- `/rankings/decliners`
 
 ## API Endpoints
 
@@ -29,7 +34,16 @@ Tom Hanks first, multi-actor ready.
 - `POST /api/comments/:commentId/delete`
 - `POST /api/admin/sync/actor/:actorSlug` (admin token required)
 - `POST /api/admin/comments/:commentId/hide` (admin token required)
+- `GET /api/admin/index/health` (admin token required)
+- `GET /api/admin/index/anomalies` (admin token required)
 - `GET|POST /api/cron/daily-sync` (cron secret required)
+- `GET /api/index/methodology`
+- `GET /api/rankings/films`
+- `GET /api/rankings/actors`
+- `GET /api/rankings/genres`
+- `GET /api/rankings/movers`
+- `GET /api/indices/movies/:movieId/history`
+- `GET /api/indices/actors/:actorId/history`
 
 ## Local Setup
 
@@ -42,10 +56,19 @@ Tom Hanks first, multi-actor ready.
    - `supabase/migrations/0001_init.sql`
    - `supabase/migrations/0002_auth0_accounts.sql`
    - `supabase/migrations/0003_user_profiles.sql`
+   - `supabase/migrations/0004_watchlist.sql`
+   - `supabase/migrations/0005_index_intelligence.sql`
 5. Seed data:
    - `npm run seed`
+   - `npm run seed:dummy-community`
+   - `npm run index:backfill -- 45`
 6. Start dev server:
    - `npm run dev`
+
+### Demo Bootstrap
+
+- One-shot local demo bootstrap:
+  - `npm run seed:v2-demo`
 
 ## Auth0 Setup
 
@@ -75,9 +98,9 @@ Tom Hanks first, multi-actor ready.
 
 ## Community / Moderation Flow
 
-- Guest users rate movies (1-10), one active vote per guest+movie (upsert behavior).
-- Guest users post comments with display name.
-- API protections: captcha verification, rate limits, cookie+IP fingerprinting, basic blocked-language check.
+- Logged-in users rate movies (1-10), one active vote per user+movie (upsert behavior).
+- Logged-in users post comments under profile display name.
+- API protections: captcha verification, rate limits, IP/fingerprint guardrails, basic blocked-language check.
 - Comments can be:
   - Reported by users
   - Hidden by admin endpoint
@@ -96,6 +119,7 @@ Coverage focus:
 - Rate limiting behavior
 - Delete token verification
 - TMDb/OMDb merge logic
+- Index component computation and aggregate volatility logic
 
 ## Notes
 
@@ -104,3 +128,4 @@ Coverage focus:
 - Community scores use `user_votes` as the primary source.
 - Legacy guest vote inclusion can be toggled with `INCLUDE_LEGACY_GUEST_VOTES=true|false`.
 - Logged-in users can manage profile fields at `/me` (display name + bio).
+- Index operational runbook is in `docs/index-ops.md`.

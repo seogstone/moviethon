@@ -12,7 +12,12 @@
     "seed": "DOTENV_CONFIG_PATH=.env.local tsx scripts/seed.ts",
     "seed:top-actors": "DOTENV_CONFIG_PATH=.env.local tsx scripts/seed-top-actors.ts",
     "seed:dummy-community": "DOTENV_CONFIG_PATH=.env.local tsx scripts/seed-dummy-community.ts",
-    "sync:actor": "DOTENV_CONFIG_PATH=.env.local tsx scripts/sync-actor.ts"
+    "seed:dummy-system": "DOTENV_CONFIG_PATH=.env.local tsx scripts/seed-dummy-system-data.ts",
+    "seed:v2-demo": "DOTENV_CONFIG_PATH=.env.local tsx scripts/seed-v2-demo.ts",
+    "sync:actor": "DOTENV_CONFIG_PATH=.env.local tsx scripts/sync-actor.ts",
+    "index:run": "DOTENV_CONFIG_PATH=.env.local tsx scripts/run-index.ts",
+    "index:backfill": "DOTENV_CONFIG_PATH=.env.local tsx scripts/backfill-index.ts",
+    "index:health": "DOTENV_CONFIG_PATH=.env.local tsx scripts/check-index-health.ts"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.15.0",

@@ -1,5 +1,6 @@
 import { listFeaturedActors } from "@/lib/data/queries";
 import { jsonError, requireCronSecret } from "@/lib/http";
+import { runDailyIndexPipeline } from "@/lib/index/run-daily-index";
 import { syncActorMovies } from "@/lib/sync/actor-sync";
 
 import { NextRequest, NextResponse } from "next/server";
@@ -20,7 +21,9 @@ async function runDailySync(request: NextRequest) {
       results.push(result);
     }
 
-    return NextResponse.json({ ok: true, results });
+    const index = await runDailyIndexPipeline();
+
+    return NextResponse.json({ ok: true, results, index });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Daily sync failed", 500);
   }

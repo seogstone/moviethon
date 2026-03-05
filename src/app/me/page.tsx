@@ -80,8 +80,8 @@ export default async function MyProfilePage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           {watchlist.items.map((item) => {
             const href = item.actorSlug
-              ? `/actors/${item.actorSlug}/movies/${item.movieSlug}`
-              : `/api/movies/${item.movieId}`;
+              ? `/movies/${item.movieSlug}?actor=${item.actorSlug}`
+              : `/movies/${item.movieSlug}`;
 
             return (
               <Link
@@ -129,8 +129,8 @@ export default async function MyProfilePage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           {recentRatings.items.map((item) => {
             const href = item.actorSlug
-              ? `/actors/${item.actorSlug}/movies/${item.movieSlug}`
-              : `/api/movies/${item.movieId}`;
+              ? `/movies/${item.movieSlug}?actor=${item.actorSlug}`
+              : `/movies/${item.movieSlug}`;
 
             return (
               <Link
